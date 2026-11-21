@@ -166,8 +166,18 @@
     ['Fet! El tema ja és al telèfon.', '¡Hecho! El tema ya está en el teléfono.', 'C’est fait ! Le thème est sur le téléphone.', 'Done! The theme is on the phone.'],
     ["No s'ha pogut aplicar: {e}", 'No se ha podido aplicar: {e}', 'Impossible d’appliquer : {e}', 'Could not apply it: {e}'],
     ["Descarregant les eines d'Android de Google…", 'Descargando las herramientas de Android de Google…', 'Téléchargement des outils Android de Google…', 'Downloading the Android tools from Google…'],
-  ];
-  const TR = { es: {}, fr: {}, en: {} };
+    // ---------- 1.2
+    ['Marc daurat', 'Marco dorado', 'Cadre doré', 'Gold frame'],
+    ['Marc platejat', 'Marco plateado', 'Cadre argenté', 'Silver frame'],
+    ['Marc metàl·lic', 'Marco metálico', 'Cadre métallique', 'Metal frame'],
+    ['Sense marc', 'Sin marco', 'Sans cadre', 'No frame'],
+    ['Daurat', 'Dorado', 'Doré', 'Gold'],
+    ['Platejat', 'Plateado', 'Argenté', 'Silver'],
+    ['Als estils amb marc metàl·lic, la icona original de cada app a dins (en lloc del dibuix Xoriguer)',
+      'En los estilos con marco metálico, el icono original de cada app dentro (en lugar del dibujo Xoriguer)',
+      'Dans les styles à cadre métallique, l’icône d’origine de chaque appli à l’intérieur (au lieu du dessin Xoriguer)',
+      'In the metal-frame styles, each app’s original icon inside (instead of the Xoriguer symbol)'],
+  ];  const TR = { es: {}, fr: {}, en: {} };
   const norm = (s) => String(s).replace(/\s+/g, ' ').trim();
   for (const [ca, es, fr, en] of F) { const k = norm(ca); TR.es[k] = es; TR.fr[k] = fr; TR.en[k] = en; }
   g.TR = TR;

@@ -19,6 +19,7 @@
   const aclareix = (c, t) => barreja(c, [255, 255, 255], t);
   const enfosqueix = (c, t) => barreja(c, [0, 0, 0], t);
   const lluminositat = (c) => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  const enfosqueixHex = (h) => hex(enfosqueix(hex2rgb(h), 0.25));
 
   // ------------------------------------------------------------ canvas
   function tela(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h || w; return c; }
@@ -143,6 +144,8 @@
     Color: { nom: 'Color', forma: 'squircle', gruix: 2.3, color: true, fons: 'Falco' },
     Color3D: { nom: 'Color 3D', forma: 'squircle', gruix: 2.3, color: true, fons: 'LogotipOrTaronja' },
     PissarraColor: { nom: 'Pissarra Color', forma: 'squircle', gruix: 1.6, color: true, fons: 'LogotipOr' },
+    MarcOr: { nom: 'Marc daurat', forma: 'squircle', gruix: 2.3, color: true, fons: 'LogotipOr', marc: 'or' },
+    MarcPlata: { nom: 'Marc platejat', forma: 'squircle', gruix: 2.3, color: true, fons: 'Logotip', marc: 'plata' },
   };
 
   function fonsXoriguer(estil, n) {
@@ -312,8 +315,99 @@
     return redueix(out);
   }
 
-  function icona(estil, paquet, original) {
+  // ------------------------------------------------------------ icones amb marc metàl·lic
+  const METALLS = {
+    or: [[0, [0x7A, 0x55, 0x1C]], [0.18, [0xE8, 0xC9, 0x8A]], [0.36, [0xFF, 0xF3, 0xD6]], [0.52, [0xB8, 0x8A, 0x45]],
+      [0.72, [0xF0, 0xD9, 0xA8]], [0.88, [0xA0, 0x74, 0x34]], [1, [0x6E, 0x4A, 0x18]]],
+    plata: [[0, [0x5E, 0x64, 0x6E]], [0.18, [0xD8, 0xDD, 0xE4]], [0.36, [0xFF, 0xFF, 0xFF]], [0.52, [0x96, 0x9E, 0xAA]],
+      [0.72, [0xE6, 0xEA, 0xEF]], [0.88, [0x82, 0x8A, 0x96]], [1, [0x4E, 0x54, 0x5E]]],
+  };
+  function gradMetall(x, n, tipus) {
+    const gr = x.createLinearGradient(0, 0, n, n);
+    for (const [t, c] of METALLS[tipus] || METALLS.or) gr.addColorStop(t, rgb(c));
+    return gr;
+  }
+  /** Bisell dins d'una forma: vora clara a dalt i fosca a baix */
+  function bisell(xo, m, n, dy, clar, fosc) {
+    for (const [d, col] of [[dy, clar], [-dy, fosc]]) {
+      const r = tela(n), xr = ctx2(r);
+      xr.drawImage(m, 0, 0); xr.globalCompositeOperation = 'destination-out'; xr.drawImage(m, 0, d);
+      const b = tela(n), xb = ctx2(b);
+      xb.filter = `blur(${K}px)`; xb.drawImage(r, 0, 0); xb.filter = 'none';
+      xb.globalCompositeOperation = 'destination-in'; xb.drawImage(m, 0, 0);
+      xo.drawImage(pinta(b, col), 0, 0);
+    }
+  }
+  /**
+   * Icona emmarcada (com els temes «de luxe»): marc metàl·lic bisellat + interior brillant.
+   * o: {forma, metall:'or'|'plata', f1, f2 (null = color de l'app), cg (color del dibuix, null = blanc), mida,
+   *     plena (fes servir la icona original de l'app omplint l'interior)}
+   */
+  async function iconaMarc(paquet, original, o) {
+    const n = S * K, out = tela(n), xo = ctx2(out);
+    const fo = o.forma || 'squircle';
+    const inset = n * 0.045, gruix = n * 0.065;
+    const ext = forma(n, fo, inset), int = forma(n, fo, inset + gruix);
+    // ombra i marc
+    const marc = pinta(ext, (x) => gradMetall(x, n, o.metall));
+    xo.drawImage(ombra(ext, K * 6, 0.6, K * 5), 0, 0);
+    xo.drawImage(marc, 0, 0);
+    bisell(xo, ext, n, K * 3, 'rgba(255,255,255,0.7)', 'rgba(40,25,5,0.55)');
+    // interior
+    const dins = tela(n), xd = ctx2(dins);
+    const gl = await glif(paquet, 2.3, original);
+    const [a1, a2] = colorApp(paquet);
+    const base = barreja(a1, a2, 0.5);
+    if (o.plena && original) {
+      const img = await carregaImatge(original);
+      const c = n - 2 * (inset + gruix), z = c * 1.22;   // una mica més gran: amaga la forma pròpia de la icona
+      xd.fillStyle = '#F4F1EA'; xd.fillRect(0, 0, n, n);
+      xd.imageSmoothingQuality = 'high';
+      xd.drawImage(img, (n - z) / 2, (n - z) / 2, z, z);
+    } else {
+      const f1 = o.f1 ? hex2rgb(o.f1) : aclareix(base, 0.22), f2 = o.f2 ? hex2rgb(o.f2) : enfosqueix(base, 0.28);
+      xd.fillStyle = degradat(xd, n, n, f1, f2); xd.fillRect(0, 0, n, n);
+      if (gl) {
+        const cg = o.cg ? hex2rgb(o.cg) : [255, 255, 255];
+        let img = encaixa(gl.img, n * (o.mida || 0.50) * (gl.tipus === 'marca' ? 0.92 : 1) * (gl.tipus === 'original' ? 1.15 : 1));
+        if (gl.tipus === 'motiu') img = recolora(img, cg, lluminositat(cg) > 140 ? enfosqueix(base, 0.45) : hex2rgb(P.CREMA));
+        else if (gl.tipus !== 'original') img = pinta(img, (x, w, h) => degradat(x, w, h, cg, enfosqueix(cg, 0.08)));
+        const capa = tela(n); centra(capa, img);
+        xd.drawImage(ombra(capa, K * 3, 0.5, K * 4), 0, 0);
+        xd.drawImage(capa, 0, 0);
+      }
+    }
+    xd.globalCompositeOperation = 'destination-in'; xd.drawImage(int, 0, 0);
+    xo.drawImage(dins, 0, 0);
+    // ombra interior sota el marc (fondària) i línia fosca de separació
+    const om = tela(n), xm = ctx2(om);
+    xm.drawImage(int, 0, 0); xm.globalCompositeOperation = 'destination-out'; xm.drawImage(int, 0, K * 5);
+    const omb = tela(n), xob = ctx2(omb); xob.filter = `blur(${K * 3}px)`; xob.drawImage(om, 0, 0); xob.filter = 'none';
+    xob.globalCompositeOperation = 'destination-in'; xob.drawImage(int, 0, 0);
+    xo.drawImage(pinta(omb, 'rgba(0,0,0,0.45)'), 0, 0);
+    xo.drawImage(pinta(vora(n, fo, inset + gruix - K, K * 1.5), 'rgba(40,25,5,0.45)'), 0, 0);
+    // brillantor de vidre (el·lipse a la part de dalt)
+    const br = tela(n), xbr = ctx2(br);
+    const gr = xbr.createLinearGradient(0, n * 0.1, 0, n * 0.55);
+    gr.addColorStop(0, 'rgba(255,255,255,0.55)'); gr.addColorStop(1, 'rgba(255,255,255,0.02)');
+    xbr.fillStyle = gr;
+    xbr.beginPath(); xbr.ellipse(n / 2, n * 0.27, n * 0.36, n * 0.21, 0, 0, Math.PI * 2); xbr.fill();
+    xbr.globalCompositeOperation = 'destination-in'; xbr.drawImage(int, 0, 0);
+    xo.globalAlpha = 0.85; xo.drawImage(br, 0, 0); xo.globalAlpha = 1;
+    return redueix(out);
+  }
+
+  function icona(estil, paquet, original, plena) {
     const e = ESTILS[estil];
+    if (e.marc) return iconaMarc(paquet, original, { forma: e.forma, metall: e.marc, plena });
+    if (e.personal && e.personal.marc && e.personal.marc !== 'cap') {
+      const c = e.personal;
+      return iconaMarc(paquet, original, {
+        forma: c.forma, metall: c.marc, plena, mida: c.mida,
+        f1: c.fons === 'app' ? null : c.c1, f2: c.fons === 'app' ? null : (c.fons === 'degradat' ? c.c2 : enfosqueixHex(c.c1)),
+        cg: c.glif === 'color' ? c.cg : c.glif === 'app' ? hex(aclareix(barreja(...colorApp(paquet), 0.5), 0.35)) : null,
+      });
+    }
     if (e.personal) return iconaPersonal(e.personal, paquet, original);
     return e.color ? iconaColor(estil, paquet, original) : iconaXoriguer(estil, paquet, original);
   }
@@ -534,8 +628,10 @@
     const llista = o.apps;
     for (let i = 0; i < llista.length; i++) {
       const a = llista[i];
-      if (!g.CATALEG[a.paquet] && !(o.originals && a.icona)) continue;
-      icones[a.paquet] = await icona(o.estil, a.paquet, o.originals ? a.icona : null);
+      // plenes: a les icones amb marc, la icona original de cada app (si la tenim) omple l'interior
+      const plena = !!(o.plenes && a.icona);
+      if (!g.CATALEG[a.paquet] && !(o.originals && a.icona) && !plena) continue;
+      icones[a.paquet] = await icona(o.estil, a.paquet, (o.originals || plena) ? a.icona : null, plena);
       if (i % 4 === 0) { prog(0.05 + 0.6 * i / llista.length, 'icones'); await new Promise((r) => setTimeout(r)); }
     }
     prog(0.68, 'fons');

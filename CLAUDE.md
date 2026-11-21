@@ -62,6 +62,11 @@ Dues parts:
 - Llistes pròpies (models, idioma) en lloc de `<select>` (el desplegable natiu d'Android sortia negre).
 - XoriguerObliga i TriaAmbArxius (fotos amb Xoriguer Arxius) integrats.
 
+## 1.2.0 (21/11/2026, compilada, no publicada)
+- Estils «Marc daurat» i «Marc platejat» (`iconaMarc` a motor.js, només a la web/app, no a fes_temes.py): marc metàl·lic
+  bisellat, interior brillant amb el color de l'app. Opció «plenes»: la icona original de cada app a dins (Android).
+  Marc també a l'editor d'estils (`cfg.marc`).
+
 ## Pendent
 - Provar l'APK al mòbil (llista d'apps amb icones, desar, selector del gestor de temes): **publicada sense provar** (decisió de l'usuari).
 - Provar en altres models i HyperOS.

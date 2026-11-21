@@ -1,7 +1,7 @@
 /* Xoriguer Temes — interfície. */
 'use strict';
 (function () {
-  const VERSIO = '1.1.0';
+  const VERSIO = '1.2.0';
   const URL_VERSIO = 'https://xoriguer.dev/versions/temes/versio.json';
   const $ = (s) => document.querySelector(s);
   const T_ = (s, v) => I18N.t(s, v);
@@ -184,6 +184,7 @@
       est.textContent = T_('Tria el model del teu telèfon. El tema es descarregarà com a fitxer .mtz.');
     }
     $('#l-originals').hidden = !(E.apps && E.apps.some((a) => a.icona));
+    $('#l-plenes').hidden = $('#l-originals').hidden;
     $('#b-aplica').hidden = !(Plat.potAplicar && i.connectat);
     aplicaModel();
   }
@@ -221,7 +222,7 @@
 
   function editaEstil(existent) {
     const id = existent ? existent.id : 'P' + Date.now().toString(36);
-    const cfg = existent ? { ...existent.cfg } : { forma: 'squircle', fons: 'app', c1: '#1E2A3B', c2: '#41506A', glif: 'blanc', cg: '#FFA82E', vora: false, relleu: true, mida: 0.54 };
+    const cfg = existent ? { ...existent.cfg } : { forma: 'squircle', fons: 'app', c1: '#1E2A3B', c2: '#41506A', glif: 'blanc', cg: '#FFA82E', vora: false, relleu: true, marc: 'cap', mida: 0.54 };
     let nom = existent ? existent.nom : T_('El meu estil');
     const previa = el('canvas', { class: 'previa-editor', width: '400', height: '110' });
     const prova = 'P_prova';
@@ -248,6 +249,7 @@
         bloc('Forma', segment([['squircle', 'Arrodonida'], ['cercle', 'Rodona'], ['quadrat', 'Quadrada']], cfg.forma, (v) => { cfg.forma = v; refresca(); })),
         bloc('Fons de la icona', segment([['app', 'Color de cada app'], ['color', 'Un color'], ['degradat', 'Degradat']], cfg.fons, (v) => { cfg.fons = v; pintaColorsFons(); refresca(); }), el('div', { style: 'height:8px' }), blocColorFons),
         bloc('Dibuix', segment([['blanc', 'Blanc'], ['app', 'Color de cada app'], ['color', 'Un color']], cfg.glif, (v) => { cfg.glif = v; pintaColorGlif(); refresca(); }), el('div', { style: 'height:8px' }), blocColorGlif),
+        bloc('Marc metàl·lic', segment([['cap', 'Sense marc'], ['or', 'Daurat'], ['plata', 'Platejat']], cfg.marc || 'cap', (v) => { cfg.marc = v; refresca(); })),
         bloc('Acabat', chk('Relleu 3D (brillantor i ombra)', 'relleu'), chk('Vora de color', 'vora')),
         bloc('Mida del dibuix', mida));
       pintaColorsFons(); pintaColorGlif(); refresca();
@@ -463,6 +465,7 @@
         nom: $('#nom').value || 'Xoriguer', fonsOpcions: opcionsFons(),
         descripcio: `Xoriguer Temes · ${est.personal ? est.nom : T_(est.nom)} · ${T_(M.FONS[E.fons] || '')}`,
         apps, originals: !$('#l-originals').hidden && $('#originals').checked,
+        plenes: !$('#l-plenes').hidden && $('#plenes').checked,
         sistema: $('#sistema').checked, paleta: { fons: pf.fons, targeta: pf.targeta, accent: pa.c },
         progres: (f) => { barra.style.width = Math.round(f * 100) + '%'; },
       });
