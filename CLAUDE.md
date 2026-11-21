@@ -52,6 +52,15 @@ Dues parts:
 - Versió nova: VERSIO a package.json i escriptori/package.json, versionCode/versionName a android/app/build.gradle,
   la línia de munta.py, recompilar, pujar l'exe a R2, munta + deploy, i `gh release create vX.Y.Z`.
 
+## 1.1.0 (21/11/2026, compilada, NO publicada encara)
+- APK: aplica sense selector si l'usuari dona permís (una vegada) a `Android/data/com.android.thememanager`
+  (SAF, només Android 11–12: `TemesPont.carpeta/demanaCarpeta/desaATemes`); si no, Descàrregues + selector com abans.
+- Botó d'opcions: idioma, Quant a, Busca actualitzacions (`versions/temes/versio.json`; VERSIO a `www/js/app.js`).
+- Estils d'icones propis (`Motor.registraEstil`, localStorage `xt-estils`) i fons propis amb foto (IndexedDB) o degradat
+  (`Motor.registraFons`, `xt-fons`). Lliscadors de posició (inici/bloqueig) i mida del logo (`fonsOpcions`).
+- Llistes pròpies (models, idioma) en lloc de `<select>` (el desplegable natiu d'Android sortia negre).
+- XoriguerObliga i TriaAmbArxius (fotos amb Xoriguer Arxius) integrats.
+
 ## Pendent
 - Provar l'APK al mòbil (llista d'apps amb icones, desar, selector del gestor de temes): **publicada sense provar** (decisió de l'usuari).
 - Provar en altres models i HyperOS.

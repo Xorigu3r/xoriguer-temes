@@ -42,5 +42,7 @@
             <category android:name="android.intent.category.LAUNCHER" />
         </intent>
         <package android:name="com.android.thememanager" />
+        <package android:name="cat.xoriguer.arxius" />
     </queries>
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 </manifest>

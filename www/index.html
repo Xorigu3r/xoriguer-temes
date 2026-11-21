@@ -15,10 +15,9 @@
       <span class="xm-mot" aria-label="Xoriguer"><svg class="xm-x" viewBox="0 0 242 153" aria-hidden="true"><path fill="currentColor" d="M96.3,19.0 L94.7,18.0 L46.7,18.3 L50.7,25.0 L73.0,53.3 L91.3,78.7 L15.3,140.0 L0.3,151.0 L0.0,152.7 L48.3,152.7 L139.7,79.3 L136.7,73.3Z M146.3,87.0 L146.7,88.7 L130.0,109.3 L129.0,112.3 L122.7,118.7 L147.0,152.3 L195.7,152.7 L195.7,151.3 L173.7,123.3 L147.7,87.7Z"/><path fill="#FF8A00" d="M241.7,0.0 L199.3,0.0 L137.3,51.0 L137.0,52.7 L152.3,74.0Z"/><path fill="#F2650F" d="M146.7,88.3 L144.7,88.7 L109.3,118.0 L103.3,122.0 L85.7,136.7 L72.0,149.7 L76.0,148.7 L91.0,139.7 L123.0,118.0 L128.7,112.3 L129.7,109.3Z"/></svg><i class="xm-resta">ORIGUER</i></span>
       <span class="xm-sub">TEMES</span>
     </div>
-    <select id="llengua" aria-label="Idioma" data-no-t>
-      <option value="">Auto</option><option value="ca">Català</option><option value="es">Español</option>
-      <option value="fr">Français</option><option value="en">English</option>
-    </select>
+    <button id="b-opcions" class="b-icona" aria-label="Opcions" title="Opcions">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
   </header>
 
   <main>
@@ -33,9 +32,9 @@
         i després <b>Depuració USB</b>. Connecta'l amb el cable i accepta el missatge que surt al mòbil.</p>
         <div class="botons"><button id="b-busca" class="sec">Torna a buscar</button><button id="b-adb" class="sec" hidden>Descarrega les eines d'Android (Google)</button></div>
       </div>
-      <label class="camp">Model
-        <select id="model"></select>
-      </label>
+      <div class="camp"><span>Model</span>
+        <button id="b-model" class="tria" data-no-t><span id="nom-model"></span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button>
+      </div>
       <div class="fila">
         <label class="camp petit">Amplada <input id="amp" type="number" min="480" max="3000" step="1"></label>
         <label class="camp petit">Alçada <input id="alc" type="number" min="800" max="4000" step="1"></label>
@@ -53,6 +52,13 @@
     <section class="targeta">
       <h2><span class="num">3</span><span>Fons de pantalla</span></h2>
       <div id="fons" class="graella fons"></div>
+      <div class="sub">Posició i mida del logo</div>
+      <div class="lliscadors">
+        <label class="lliscador"><span>Inici</span><input type="range" id="dy-inici" min="-30" max="30" step="1" value="0"><output id="o-inici"></output></label>
+        <label class="lliscador"><span>Bloqueig</span><input type="range" id="dy-bloq" min="-30" max="30" step="1" value="0"><output id="o-bloq"></output></label>
+        <label class="lliscador"><span>Mida</span><input type="range" id="escala" min="50" max="150" step="5" value="100"><output id="o-escala"></output></label>
+      </div>
+      <button id="b-reinicia" class="sec petit">Posició i mida originals</button>
     </section>
 
     <!-- 4. sistema -->
@@ -79,7 +85,7 @@
           <button id="b-desa" class="sec">Desa el fitxer .mtz</button>
         </div>
         <div id="ajuda-aplica" class="ajuda" hidden>
-          S'obrirà el gestor de temes amb el selector de fitxers: busca <b id="nom-fitxer"></b> a <b>Descàrregues</b> (o fes servir la lupa) i toca'l. El tema s'aplica sol.
+          S'ha obert el gestor de temes amb el selector de fitxers: busca <b id="nom-fitxer"></b> a <b>Descàrregues</b> (o fes servir la lupa) i toca'l. El tema s'aplica sol.
         </div>
         <div id="missatge" class="estat"></div>
       </div>
@@ -87,6 +93,16 @@
 
     <p class="peu suau petit">Funciona amb MIUI 12, 13 i 14 (provat amb MIUI 14). Els temes es fan dins del teu aparell: no es puja res enlloc.</p>
   </main>
+
+  <!-- finestra (opcions, llistes, editors) -->
+  <div id="modal" class="modal" hidden>
+    <div class="caixa" role="dialog" aria-modal="true">
+      <div class="cap-modal"><h3 id="modal-titol"></h3><button id="modal-tanca" class="b-icona" aria-label="Tanca">✕</button></div>
+      <div id="modal-cos" class="cos-modal"></div>
+      <div id="modal-peu" class="botons peu-modal"></div>
+    </div>
+  </div>
+  <input type="file" id="tria-foto" accept="image/*" hidden>
 
   <script src="i18n.js"></script>
   <script src="traduccions.js"></script>

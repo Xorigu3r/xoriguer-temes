@@ -127,6 +127,13 @@ ipcMain.handle('descarrega-adb', async () => {
   return !!trobaAdb();
 });
 ipcMain.on('obre-extern', (e, url) => { if (/^https:\/\//.test(url)) shell.openExternal(url); });
+// Comprovar versions sense problemes de CORS
+ipcMain.handle('busca', async (e, url) => {
+  if (!/^https:\/\/xoriguer\.dev\//.test(url)) throw new Error('url');
+  const r = await net.fetch(url, { cache: 'no-store' });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.text();
+});
 
 // ------------------------------------------------------------ finestra
 function crea() {

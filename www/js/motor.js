@@ -28,7 +28,7 @@
     const a = inset, b = n - inset;
     ctx.beginPath();
     if (tipus === 'cercle') ctx.arc(n / 2, n / 2, (b - a) / 2, 0, Math.PI * 2);
-    else ctx.roundRect(a, a, b - a, b - a, (b - a) * 0.30);
+    else ctx.roundRect(a, a, b - a, b - a, (b - a) * (tipus === 'quadrat' ? 0.14 : 0.30));
   }
   /** Canvas amb la forma plena (blanca) */
   function forma(n, tipus, inset) {
@@ -263,15 +263,74 @@
     return o;
   }
 
-  function icona(estil, paquet, original) {
-    return ESTILS[estil].color ? iconaColor(estil, paquet, original) : iconaXoriguer(estil, paquet, original);
+  /** Estil fet per l'usuari. cfg: {forma:'squircle'|'cercle'|'quadrat', fons:'app'|'color'|'degradat', c1, c2,
+   *  glif:'blanc'|'color'|'app', cg, vora:bool, relleu:bool, mida:0.4–0.7} */
+  async function iconaPersonal(cfg, paquet, original) {
+    const n = S * K, out = tela(n), xo = ctx2(out);
+    const [a1, a2] = colorApp(paquet);
+    const base = barreja(a1, a2, 0.5);
+    const relleu = !!cfg.relleu;
+    const inset = n * (relleu ? 0.06 : 0.04);
+    const m = forma(n, cfg.forma, inset);
+    let f1, f2;
+    if (cfg.fons === 'app') { f1 = relleu ? aclareix(base, 0.12) : a1; f2 = relleu ? enfosqueix(base, 0.18) : a2; }
+    else if (cfg.fons === 'degradat') { f1 = hex2rgb(cfg.c1); f2 = hex2rgb(cfg.c2); }
+    else { f1 = hex2rgb(cfg.c1); f2 = relleu ? enfosqueix(f1, 0.15) : f1; }
+    const cos = pinta(m, (x, w, h) => degradat(x, w, h, f1, f2, true));
+    xo.drawImage(ombra(cos, K * (relleu ? 6 : 3), relleu ? 0.55 : 0.35, K * (relleu ? 5 : 2)), 0, 0);
+    xo.drawImage(cos, 0, 0);
+    const mig = barreja(f1, f2, 0.5);
+    if (relleu) {
+      for (const [dy, col, op] of [[K * 4, [255, 255, 255], 0.5], [-K * 4, enfosqueix(mig, 0.55), 0.6]]) {
+        const r = tela(n), xr = ctx2(r);
+        xr.drawImage(m, 0, 0); xr.globalCompositeOperation = 'destination-out'; xr.drawImage(m, 0, dy);
+        const b = tela(n), xb = ctx2(b);
+        xb.filter = `blur(${K}px)`; xb.drawImage(r, 0, 0); xb.filter = 'none';
+        xb.globalCompositeOperation = 'destination-in'; xb.drawImage(m, 0, 0);
+        xo.drawImage(pinta(b, rgba(col, op)), 0, 0);
+      }
+      const br = tela(n), xbr = ctx2(br);
+      const gr = xbr.createLinearGradient(0, 0, 0, n);
+      gr.addColorStop(0, 'rgba(255,255,255,0.22)'); gr.addColorStop(0.47, 'rgba(255,255,255,0)');
+      xbr.fillStyle = gr; xbr.fillRect(0, 0, n, n);
+      xbr.globalCompositeOperation = 'destination-in'; xbr.drawImage(forma(n, cfg.forma, inset + K * 5), 0, 0);
+      xo.drawImage(br, 0, 0);
+    }
+    // color del dibuix
+    const clarApp = lluminositat(base) > 110 ? base : aclareix(base, 0.35);
+    const cg = cfg.glif === 'app' ? clarApp : cfg.glif === 'color' ? hex2rgb(cfg.cg) : [255, 255, 255];
+    if (cfg.vora) xo.drawImage(pinta(vora(n, cfg.forma, inset, K * 3), rgba(cfg.glif === 'blanc' ? aclareix(mig, 0.35) : cg, 0.9)), 0, 0);
+    const gl = await glif(paquet, 2, original);
+    if (gl) {
+      let img = encaixa(gl.img, n * (cfg.mida || 0.54) * (gl.tipus === 'marca' ? 0.92 : 1) * (gl.tipus === 'original' ? 1.12 : 1));
+      if (gl.tipus === 'motiu') img = recolora(img, cg, lluminositat(cg) > 140 ? enfosqueix(mig, 0.45) : hex2rgb(P.CREMA));
+      else if (gl.tipus !== 'original') img = pinta(img, relleu ? (x, w, h) => degradat(x, w, h, cg, enfosqueix(cg, 0.06)) : rgb(cg));
+      const capa = tela(n); centra(capa, img);
+      xo.drawImage(ombra(capa, K * (relleu ? 3 : 2), relleu ? 0.5 : 0.18, K * (relleu ? 4 : 2)), 0, 0);
+      xo.drawImage(capa, 0, 0);
+    }
+    return redueix(out);
   }
+
+  function icona(estil, paquet, original) {
+    const e = ESTILS[estil];
+    if (e.personal) return iconaPersonal(e.personal, paquet, original);
+    return e.color ? iconaColor(estil, paquet, original) : iconaXoriguer(estil, paquet, original);
+  }
+  /** Afegeix (o substitueix) un estil fet per l'usuari */
+  function registraEstil(id, nom, cfg) {
+    ESTILS[id] = { nom, forma: cfg.forma, gruix: 2.3, color: true, fons: 'Falco', personal: cfg };
+  }
+  function treuEstil(id) { delete ESTILS[id]; }
 
   /** Icones per a apps sense icona al tema (MIUI posa fons + icona retallada + vora) */
   function iconesFallback(estil) {
     const n = S * K, e = ESTILS[estil];
-    const fe = e.color ? 'Pissarra' : estil;
-    const fons = fonsXoriguer(fe, n);
+    let fons;
+    if (e.personal) {
+      const c = e.personal.fons === 'app' ? '#4A6085' : e.personal.c1;
+      fons = pinta(forma(n, e.forma, n * 0.04), (x, w, h) => degradat(x, w, h, c, e.personal.fons === 'degradat' ? e.personal.c2 : c, true));
+    } else fons = fonsXoriguer(e.color ? 'Pissarra' : estil, n);
     const masc = forma(n, e.forma, n * 0.20);
     const buit = tela(n);
     return { 'icon_background.png': redueix(fons), 'icon_mask.png': redueix(masc), 'icon_border.png': redueix(buit), 'icon_pattern.png': redueix(buit) };
@@ -338,38 +397,72 @@
     Pissarra: 'Pissarra', Taronja: 'Posta de sol', Crema: 'Corbes', Falco: 'Xoriguer',
     Logotip: 'Logotip', FalcoOr: "Xoriguer d'or", LogotipOr: "Logotip d'or", LogotipOrTaronja: 'Or i taronja',
   };
+  const LOGOS = {
+    Falco: 'Xoriguer', Logotip: 'Logotip', Simbol: 'Xoriguer amb roda', FalcoOr: "Xoriguer d'or",
+    LogotipOr: "Logotip d'or", LogotipOrTaronja: 'Or i taronja',
+  };
+  /** Fons fets per l'usuari: id -> {base:'degradat'|'foto', c1, c2, foto (Image), logo: clau de LOGOS o 'cap', aura} */
+  const PERSONALS = {};
+  function registraFons(id, nom, cfg) { PERSONALS[id] = cfg; FONS[id] = nom; }
+  function treuFons(id) { delete PERSONALS[id]; delete FONS[id]; }
 
-  async function fons(estil, W, H, bloqueig) {
+  /** Dibuixa el logo (amb aura i ombra). o: {dyInici, dyBloq, escala} = posició (fracció de l'alçada) i mida. */
+  async function dibuixaLogo(x, variant, W, H, bloqueig, o, aura) {
+    const u = W / 1080;
+    const falco = variant.startsWith('Falco'), simbol = variant === 'Simbol';
+    const src = simbol ? 'img/logos/simbol.png' : falco ? 'img/logos/falco.png' : 'img/logos/logotip.png';
+    const esc = Math.max(0.3, Math.min(1.6, (o && o.escala) || 1));
+    let logo = encaixa(await carregaImatge(src), W * (falco ? 0.86 : simbol ? 0.80 : 0.78) * esc);
+    const or_ = variant.includes('Or');
+    if (variant === 'LogotipOrTaronja') logo = dauratITaronja(logo);
+    else if (or_) logo = daurat(logo);
+    else {   // colors més vius
+      const v = tela(logo.width, logo.height), xv = ctx2(v);
+      xv.filter = 'saturate(1.3) contrast(1.08)'; xv.drawImage(logo, 0, 0); logo = v;
+    }
+    const dy = (bloqueig ? 0.08 + ((o && o.dyBloq) || 0) : -0.06 + ((o && o.dyInici) || 0));
+    const capa = tela(W, H); centra(capa, logo, H * dy);
+    if (aura !== false) {   // aura de llum darrere el logo perquè ressalti
+      x.save(); x.globalAlpha = 0.55; x.filter = `blur(${Math.round(W / 30)}px)`;
+      x.drawImage(pinta(capa, or_ ? '#FFC84A' : '#FF8A00'), 0, 0); x.restore();
+    }
+    x.drawImage(ombra(capa, 18 * u, 0.55, 12 * u), 0, 0);
+    x.drawImage(capa, 0, 0);
+  }
+
+  /** o: {dyInici, dyBloq, escala} (posició i mida del logo) */
+  async function fons(estil, W, H, bloqueig, o) {
+    o = o || {};
     const c = tela(W, H), x = ctx2(c), u = W / 1080;
-    const logos = estil.startsWith('Falco') || estil.startsWith('Logotip');
-    if (logos) {
+    const pers = PERSONALS[estil];
+    if (pers) {
+      if (pers.base === 'foto' && pers.foto) {   // la foto omple la pantalla (retallada al centre)
+        const f = pers.foto, r = Math.max(W / f.width, H / f.height);
+        x.imageSmoothingQuality = 'high';
+        x.drawImage(f, (W - f.width * r) / 2, (H - f.height * r) / 2, f.width * r, f.height * r);
+      } else {
+        x.fillStyle = degradat(x, W, H, pers.c1 || P.FONS_A, pers.c2 || P.FONS_B); x.fillRect(0, 0, W, H);
+      }
+      if (pers.logo && pers.logo !== 'cap') await dibuixaLogo(x, pers.logo, W, H, bloqueig, o, pers.aura !== false);
+      return c;
+    }
+    if (estil.startsWith('Falco') || estil.startsWith('Logotip')) {
       x.fillStyle = degradat(x, W, H, P.FONS_A, P.FONS_B); x.fillRect(0, 0, W, H);
       const or_ = estil.includes('Or');
       resplendor(x, W / 2, H * 0.52, 650 * u, or_ ? [0xE8, 0xB8, 0x4A] : hex2rgb(P.TAR_B), or_ ? 0.10 : 0.18);
       resplendor(x, W * 0.1, H * 0.08, 600 * u, [0x3A, 0x55, 0x7A], 0.35);
-      const src = estil.startsWith('Falco') ? 'img/logos/falco.png' : 'img/logos/logotip.png';
-      let logo = encaixa(await carregaImatge(src), W * (estil.startsWith('Falco') ? 0.86 : 0.78));
-      if (estil === 'LogotipOrTaronja') logo = dauratITaronja(logo);
-      else if (or_) logo = daurat(logo);
-      else {   // colors més vius
-        const v = tela(logo.width, logo.height), xv = ctx2(v);
-        xv.filter = 'saturate(1.3) contrast(1.08)'; xv.drawImage(logo, 0, 0); logo = v;
-      }
-      const capa = tela(W, H); centra(capa, logo, H * (bloqueig ? 0.08 : -0.06));
-      // aura de llum darrere el logo perquè ressalti
-      x.save(); x.globalAlpha = 0.55; x.filter = `blur(${Math.round(W / 30)}px)`;
-      x.drawImage(pinta(capa, or_ ? '#FFC84A' : '#FF8A00'), 0, 0); x.restore();
-      x.drawImage(ombra(capa, 18 * u, 0.55, 12 * u), 0, 0);
-      x.drawImage(capa, 0, 0);
+      await dibuixaLogo(x, estil, W, H, bloqueig, o);
       return c;
     }
     const simbol = await carregaImatge('img/logos/simbol.png');
+    const esc = Math.max(0.3, Math.min(1.6, o.escala || 1));
+    const dB = H * (o.dyBloq || 0), dI = H * (o.dyInici || 0);
     if (estil === 'Pissarra') {
       x.fillStyle = degradat(x, W, H, P.FONS_A, P.FONS_B); x.fillRect(0, 0, W, H);
       resplendor(x, W * 0.95, H * 0.95, 700 * u, hex2rgb(P.TAR_B), 0.14);
       resplendor(x, W * 0.1, H * 0.15, 700 * u, [0x3A, 0x55, 0x7A], 0.35);
-      if (bloqueig) centra(c, encaixa(simbol, W * 0.78), H * 0.17);
-      else { x.globalAlpha = 0.16; x.drawImage(encaixa(simbol, W * 1.25), W * 0.05, H * 0.60); x.globalAlpha = 1; }
+      if (bloqueig) centra(c, encaixa(simbol, W * 0.78 * esc), H * 0.17 + dB);
+      else { x.globalAlpha = 0.16; x.drawImage(encaixa(simbol, W * 1.25 * esc), W * 0.05, H * 0.60 + dI); x.globalAlpha = 1; }
     } else if (estil === 'Taronja') {
       x.fillStyle = degradat(x, W, H, '#223146', '#2C3448'); x.fillRect(0, 0, W, H);
       if (bloqueig) {
@@ -379,9 +472,9 @@
         resplendor(x, W / 2, H * 1.10, 900 * u, hex2rgb(P.TAR_B), 0.45);
         resplendor(x, W * 0.1, -H * 0.05, 600 * u, hex2rgb(P.TAR_A), 0.18);
       }
-      const sil = pinta(encaixa(simbol, W * (bloqueig ? 0.80 : 0.95)), P.CREMA);
+      const sil = pinta(encaixa(simbol, W * (bloqueig ? 0.80 : 0.95) * esc), P.CREMA);
       x.globalAlpha = bloqueig ? 0.92 : 0.22;
-      if (bloqueig) centra(c, sil, H * 0.10); else x.drawImage(sil, (W - sil.width) / 2, H * 0.30);
+      if (bloqueig) centra(c, sil, H * 0.10 + dB); else x.drawImage(sil, (W - sil.width) / 2, H * 0.30 + dI);
       x.globalAlpha = 1;
     } else {  // Crema: corbes
       x.fillStyle = degradat(x, W, H, P.FONS3, P.FONS_B); x.fillRect(0, 0, W, H);
@@ -391,9 +484,9 @@
         x.strokeStyle = i % 4 ? 'rgba(246,239,226,0.16)' : 'rgba(255,168,46,0.47)';
         x.lineWidth = 2.5 * u; x.stroke();
       }
-      const s = encaixa(simbol, W * (bloqueig ? 0.70 : 0.55));
-      if (bloqueig) centra(c, s, H * 0.15);
-      else { x.globalAlpha = 0.18; x.drawImage(pinta(s, P.CREMA), W * 0.08, H * 0.08); x.globalAlpha = 1; }
+      const s = encaixa(simbol, W * (bloqueig ? 0.70 : 0.55) * esc);
+      if (bloqueig) centra(c, s, H * 0.15 + dB);
+      else { x.globalAlpha = 0.18; x.drawImage(pinta(s, P.CREMA), W * 0.08, H * 0.08 + dI); x.globalAlpha = 1; }
     }
     return c;
   }
@@ -446,8 +539,8 @@
       if (i % 4 === 0) { prog(0.05 + 0.6 * i / llista.length, 'icones'); await new Promise((r) => setTimeout(r)); }
     }
     prog(0.68, 'fons');
-    const inici = await fons(o.fons, o.W, o.H, false);
-    const bloq = await fons(o.fons, o.W, o.H, true);
+    const inici = await fons(o.fons, o.W, o.H, false, o.fonsOpcions);
+    const bloq = await fons(o.fons, o.W, o.H, true, o.fonsOpcions);
     const prev = await previa(inici, icones);
     prog(0.85, 'paquet');
 
@@ -486,5 +579,5 @@
     return { bytes: z.bytes(), previa: prev, bloqueig: bloq, icones: Object.keys(icones).length };
   }
 
-  g.Motor = { ESTILS, FONS, P, S, icona, fons, creaTema, carregaImatge, colorApp };
+  g.Motor = { ESTILS, FONS, LOGOS, P, S, icona, fons, creaTema, carregaImatge, colorApp, registraEstil, treuEstil, registraFons, treuFons };
 })(window);

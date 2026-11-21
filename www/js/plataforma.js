@@ -38,9 +38,19 @@
       setTimeout(() => URL.revokeObjectURL(a.href), 4000);
       return { ok: true };
     },
+    /** Android: {ok, possible} = si tenim (o podem demanar) permís a la carpeta del gestor de temes */
+    async carpeta() { return cap ? cap.carpeta() : { ok: false, possible: false }; },
+    async demanaCarpeta() { return cap ? cap.demanaCarpeta() : { ok: false }; },
     /** Retorna {ok, tria (cal triar el fitxer al selector), missatge} */
     async aplica(bytes, nom) {
       if (cap) {
+        const c = await cap.carpeta();
+        if (c.ok) {   // directe: a la carpeta del gestor de temes, que l'aplica sol
+          try {
+            const d = await cap.desaATemes({ nom, dades: aBase64(bytes) });
+            return cap.aplica({ cami: d.cami });
+          } catch (e) { console.warn('carpeta del gestor:', e); }
+        }
         const d = await cap.desa({ nom, dades: aBase64(bytes) });
         return cap.aplica({ cami: d.cami });
       }
@@ -49,6 +59,18 @@
     },
     potAplicar: tipus !== 'web',
     descarregaAdb: () => (esc ? esc.descarregaAdb() : null),
+    /** Text d'una adreça de xoriguer.dev (actualitzacions) */
+    async busca(url) {
+      if (esc) return esc.busca(url);
+      const r = await fetch(url, { cache: 'no-store' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.text();
+    },
+    obreUrl(url) {
+      if (cap) return cap.obreUrl({ url });
+      if (esc) return esc.obreExtern(url);
+      window.open(url, '_blank', 'noopener');
+    },
   };
   g.Plat = Plat;
 })(window);

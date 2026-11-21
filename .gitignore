@@ -1,8 +1,8 @@
 node_modules/
-dist/
-cache/
-temes/
-referencia/
+/dist/
+/cache/
+/temes/
+/referencia/
 escriptori/node_modules/
 escriptori/www/
 android/.gradle/
