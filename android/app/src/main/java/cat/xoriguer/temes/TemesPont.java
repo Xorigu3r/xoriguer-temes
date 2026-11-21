@@ -1,10 +1,8 @@
 package cat.xoriguer.temes;
 
-import android.app.Activity;
 import android.content.ActivityNotFoundException;
-import android.provider.DocumentsContract;
-import androidx.activity.result.ActivityResult;
-import com.getcapacitor.annotation.ActivityCallback;
+import android.os.Handler;
+import android.os.Looper;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Intent;
@@ -41,7 +39,8 @@ import java.util.Set;
  *  info()  model, nom comercial, resolució real i versió de MIUI / HyperOS
  *  apps()  apps de la pantalla d'inici (paquet, nom i icona)
  *  desa()  desa el .mtz a Descàrregues
- *  aplica() obre el gestor de temes de MIUI perquè apliqui el fitxer (l'usuari el tria al selector)
+ *  aplicaDirecte() desa el tema com a imatge i el gestor de temes l'aplica sol (vegeu més avall)
+ *  aplica() reserva: obre el gestor amb un fitxer de Descàrregues (l'usuari el tria al selector)
  */
 @CapacitorPlugin(name = "Temes")
 public class TemesPont extends Plugin {
@@ -168,103 +167,66 @@ public class TemesPont extends Plugin {
         }).start();
     }
 
-    // ------------------------------------------------------------ carpeta del gestor de temes
-    // A Android 11 i 12 l'usuari pot donar permís a Android/data/com.android.thememanager amb el selector de carpetes.
-    // Llavors el .mtz es desa allà i el gestor l'aplica directament (sense que l'usuari hagi de triar el fitxer).
-    // A Android 13+ ja no es pot: es fa servir Descàrregues + el selector del gestor.
-    private static final String EXT = "com.android.externalstorage.documents";
-    private static final String DOC_TEMES = "primary:Android/data/com.android.thememanager";
+    // ------------------------------------------------------------ aplicar directament (sense selector)
+    // El gestor de temes no pot llegir fitxers qualsevol d'altres apps (Descàrregues: obre un selector), però sí
+    // IMATGES de les carpetes públiques. El .mtz es desa com «Imatges/Xoriguer Temes/xoriguer-tema.jpg» (és un zip:
+    // al gestor no li importa l'extensió), s'aplica i al cap d'uns segons s'esborra perquè no quedi a la Galeria.
+    // Provat al Mi 10T Lite (MIUI 14, Android 12). Una carpeta oculta (.xoriguer) NO va: el gestor no hi té accés.
+    private static final String CARPETA_IMG = Environment.DIRECTORY_PICTURES + "/Xoriguer Temes/";
+    private static final String NOM_IMG = "xoriguer-tema.jpg";
 
-    private Uri arbreTemes() {
-        for (android.content.UriPermission p : getContext().getContentResolver().getPersistedUriPermissions()) {
-            Uri u = p.getUri();
-            if (!EXT.equals(u.getAuthority()) || !p.isWritePermission()) continue;
-            try {
-                String id = DocumentsContract.getTreeDocumentId(u);
-                if (DOC_TEMES.startsWith(id) || id.startsWith(DOC_TEMES)) return u;
-            } catch (Exception ignored) {
-            }
-        }
-        return null;
-    }
-
-    @PluginMethod
-    public void carpeta(PluginCall call) {
-        JSObject r = new JSObject();
-        r.put("ok", arbreTemes() != null);
-        r.put("possible", Build.VERSION.SDK_INT >= 30 && Build.VERSION.SDK_INT <= 32);
-        call.resolve(r);
-    }
-
-    @PluginMethod
-    public void demanaCarpeta(PluginCall call) {
-        Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-        i.putExtra(DocumentsContract.EXTRA_INITIAL_URI, DocumentsContract.buildDocumentUri(EXT, DOC_TEMES));
-        i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION | Intent.FLAG_GRANT_PREFIX_URI_PERMISSION);
-        startActivityForResult(call, i, "carpetaFeta");
-    }
-
-    @ActivityCallback
-    private void carpetaFeta(PluginCall call, ActivityResult res) {
-        JSObject r = new JSObject();
-        Intent d = res.getData();
-        if (res.getResultCode() == Activity.RESULT_OK && d != null && d.getData() != null) {
-            try {
-                getContext().getContentResolver().takePersistableUriPermission(d.getData(),
-                        Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-            } catch (Exception ignored) {
-            }
-        }
-        r.put("ok", arbreTemes() != null);
-        call.resolve(r);
-    }
-
-    /** Document fill (directori) dins de l'arbre: si no existeix, el crea. */
-    private Uri directori(ContentResolver cr, Uri arbre, String pareId, String nom) throws Exception {
-        String id = pareId + "/" + nom;
-        Uri u = DocumentsContract.buildDocumentUriUsingTree(arbre, id);
-        try (Cursor c = cr.query(u, new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID}, null, null, null)) {
-            if (c != null && c.moveToFirst()) return u;
+    private void esborraImatges() {
+        try {
+            getContext().getContentResolver().delete(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                    MediaStore.MediaColumns.RELATIVE_PATH + "=?", new String[]{CARPETA_IMG});
         } catch (Exception ignored) {
         }
-        Uri pare = DocumentsContract.buildDocumentUriUsingTree(arbre, pareId);
-        Uri nou = DocumentsContract.createDocument(cr, pare, DocumentsContract.Document.MIME_TYPE_DIR, nom);
-        if (nou == null) throw new Exception("no puc crear " + nom);
-        return nou;
+    }
+
+    @Override
+    public void load() {
+        if (Build.VERSION.SDK_INT >= 29) new Thread(this::esborraImatges).start();   // restes d'un tema anterior
     }
 
     @PluginMethod
-    public void desaATemes(PluginCall call) {
-        String nom = call.getString("nom", "Xoriguer.mtz");
+    public void aplicaDirecte(PluginCall call) {
+        if (Build.VERSION.SDK_INT < 29) { call.reject("antic"); return; }
         String dades = call.getString("dades", "");
         new Thread(() -> {
             try {
-                Uri arbre = arbreTemes();
-                if (arbre == null) throw new Exception("sense permís");
                 ContentResolver cr = getContext().getContentResolver();
-                directori(cr, arbre, DOC_TEMES, "files");
-                Uri dir = directori(cr, arbre, DOC_TEMES + "/files", "xoriguer");
-                Uri vell = DocumentsContract.buildDocumentUriUsingTree(arbre, DOC_TEMES + "/files/xoriguer/" + nom);
-                try {
-                    DocumentsContract.deleteDocument(cr, vell);
-                } catch (Exception ignored) {
-                }
-                Uri f = DocumentsContract.createDocument(cr, dir, "application/octet-stream", nom);
-                if (f == null) throw new Exception("no puc crear el fitxer");
-                try (OutputStream os = cr.openOutputStream(f, "w")) {
+                esborraImatges();
+                ContentValues v = new ContentValues();
+                v.put(MediaStore.MediaColumns.DISPLAY_NAME, NOM_IMG);
+                v.put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg");
+                v.put(MediaStore.MediaColumns.RELATIVE_PATH, CARPETA_IMG);
+                Uri uri = cr.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, v);
+                if (uri == null) throw new Exception("MediaStore");
+                try (OutputStream os = cr.openOutputStream(uri)) {
                     os.write(Base64.decode(dades, Base64.DEFAULT));
                 }
-                String real = nom;
-                try (Cursor c = cr.query(f, new String[]{DocumentsContract.Document.COLUMN_DISPLAY_NAME}, null, null, null)) {
+                String real = NOM_IMG;
+                try (Cursor c = cr.query(uri, new String[]{MediaStore.MediaColumns.DISPLAY_NAME}, null, null, null)) {
                     if (c != null && c.moveToFirst()) real = c.getString(0);
                 }
+                String cami = Environment.getExternalStorageDirectory().getAbsolutePath() + "/" + CARPETA_IMG + real;
+                Intent i = new Intent();
+                i.setClassName("com.android.thememanager", "com.android.thememanager.ApplyThemeForScreenshot");
+                i.putExtra("theme_file_path", cami);
+                i.putExtra("api_called_from", "xoriguer-temes");
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                getActivity().startActivity(i);
+                // el gestor copia el tema a /data/system/theme en pocs segons: després ja el podem esborrar
+                new Handler(Looper.getMainLooper()).postDelayed(() -> new Thread(this::esborraImatges).start(), 45000);
                 JSObject r = new JSObject();
                 r.put("ok", true);
-                r.put("cami", Environment.getExternalStorageDirectory().getAbsolutePath()
-                        + "/Android/data/com.android.thememanager/files/xoriguer/" + real);
+                r.put("tria", false);
                 call.resolve(r);
+            } catch (ActivityNotFoundException e) {
+                esborraImatges();
+                call.reject("sense gestor de temes");
             } catch (Exception e) {
+                esborraImatges();
                 call.reject(String.valueOf(e.getMessage()));
             }
         }).start();

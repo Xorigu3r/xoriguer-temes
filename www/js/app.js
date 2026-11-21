@@ -484,25 +484,8 @@
     if (r && r.cami) $('#missatge').textContent = T_('Desat a {c}', { c: r.cami });
     else if (r && r.ok) $('#missatge').textContent = T_('Desat.');
   }
-  /** Android: la primera vegada, demana permís a la carpeta del gestor de temes (així s'aplica sense selector) */
-  function potserCarpeta() {
-    return new Promise(async (ok) => {
-      if (Plat.tipus !== 'android') return ok();
-      let c; try { c = await Plat.carpeta(); } catch { return ok(); }
-      if (c.ok || !c.possible || desat.senseCarpeta) return ok();
-      obreModal(T_('Aplicar directament'), (cos) => {
-        cos.append(el('p', { text: T_("Perquè el tema s'apliqui sol, sense haver de buscar el fitxer, dona permís una sola vegada a la carpeta del gestor de temes.") }),
-          el('p', { class: 'suau petit', text: T_("S'obrirà una pantalla d'Android amb la carpeta «com.android.thememanager»: toca «Utilitza aquesta carpeta» i després «Permet».") }));
-      }, [
-        { text: T_('Dona permís'), classe: 'princ', fes: async () => { tancaModal(); try { await Plat.demanaCarpeta(); } catch { /* res */ } ok(); } },
-        { text: T_('Ara no'), fes: () => { tancaModal(); ok(); } },
-        { text: T_('No ho tornis a preguntar'), fes: () => { desat.senseCarpeta = true; guarda(); tancaModal(); ok(); } },
-      ]);
-    });
-  }
   async function aplica() {
     const b = $('#b-aplica'); b.disabled = true;
-    await potserCarpeta();
     $('#missatge').textContent = T_('Aplicant el tema…'); $('#ajuda-aplica').hidden = true;
     try {
       const r = await Plat.aplica(E.resultat.bytes, E.resultat.nom);

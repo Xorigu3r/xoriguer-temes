@@ -38,20 +38,14 @@
       setTimeout(() => URL.revokeObjectURL(a.href), 4000);
       return { ok: true };
     },
-    /** Android: {ok, possible} = si tenim (o podem demanar) permís a la carpeta del gestor de temes */
-    async carpeta() { return cap ? cap.carpeta() : { ok: false, possible: false }; },
-    async demanaCarpeta() { return cap ? cap.demanaCarpeta() : { ok: false }; },
     /** Retorna {ok, tria (cal triar el fitxer al selector), missatge} */
     async aplica(bytes, nom) {
       if (cap) {
-        const c = await cap.carpeta();
-        if (c.ok) {   // directe: a la carpeta del gestor de temes, que l'aplica sol
-          try {
-            const d = await cap.desaATemes({ nom, dades: aBase64(bytes) });
-            return cap.aplica({ cami: d.cami });
-          } catch (e) { console.warn('carpeta del gestor:', e); }
-        }
-        const d = await cap.desa({ nom, dades: aBase64(bytes) });
+        const dades = aBase64(bytes);
+        // directe: el gestor de temes el llegeix com a imatge i l'aplica sol (TemesPont.aplicaDirecte)
+        try { return await cap.aplicaDirecte({ dades }); } catch (e) { console.warn('aplicaDirecte:', e); }
+        // reserva: Descàrregues + selector del gestor de temes
+        const d = await cap.desa({ nom, dades });
         return cap.aplica({ cami: d.cami });
       }
       if (esc) return esc.aplica({ nom, dades: bytes });
