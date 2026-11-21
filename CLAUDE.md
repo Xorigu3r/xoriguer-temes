@@ -44,6 +44,15 @@ Dues parts:
 - .exe (win-unpacked, controlat per CDP): detecta el Mi 10T Lite, llista 105 apps, crea i aplica el tema → comprovat al mòbil.
 - APK: compilat; **no instal·lat encara** (MIUI demana confirmar «Instal·la via USB» al mòbil). Còpia a Descàrregues del mòbil.
 
+## Publicat (21/11/2026, v1.0.0)
+- xoriguer.dev: fitxa a `xorigu3r.github.io/productes.js` (id «temes», img/temes.png), `temes/versio.json` a
+  `XoriguerMirall/munta.py` (VERSIONS). Exe a R2 (`npx wrangler@4 r2 object put xoriguer-baixades/XoriguerTemes-Instalador.exe ...`),
+  APK a /baixades/. Després: `python -I munta.py`, `npx wrangler deploy`, `python -I avisa_indexnow.py`.
+- GitHub: https://github.com/Xorigu3r/xoriguer-temes (Release v1.0.0 amb exe i APK). `gh` instal·lat i amb sessió.
+- Versió nova: VERSIO a package.json i escriptori/package.json, versionCode/versionName a android/app/build.gradle,
+  la línia de munta.py, recompilar, pujar l'exe a R2, munta + deploy, i `gh release create vX.Y.Z`.
+
 ## Pendent
-- Provar l'APK al mòbil (llista d'apps amb icones, desar, selector del gestor de temes).
-- Provar en altres models i HyperOS. Publicar (xoriguer.dev / versions) quan l'usuari ho digui.
+- Provar l'APK al mòbil (llista d'apps amb icones, desar, selector del gestor de temes): **publicada sense provar** (decisió de l'usuari).
+- Provar en altres models i HyperOS.
+- L'APK no porta XoriguerObliga.java (munta.py posa "obliga": true a tots els versio.json amb APK).
