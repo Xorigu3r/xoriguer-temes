@@ -1,0 +1,26 @@
+{
+  "name": "xoriguer-temes",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Creador de temes per a telèfons Xiaomi (MIUI)",
+  "scripts": {
+    "dades": "python -I eines/exporta_web.py",
+    "serve": "node scripts/serve.mjs 8811",
+    "copy:cap": "node -e \"require('fs').copyFileSync('node_modules/@capacitor/core/dist/capacitor.js','www/capacitor.js')\"",
+    "sync": "npm run copy:cap && npx cap sync android",
+    "apk": "npm run sync && powershell -ExecutionPolicy Bypass -File scripts/build-apk.ps1",
+    "exe": "powershell -ExecutionPolicy Bypass -File scripts/build-exe.ps1"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/core": "^8.6.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^4.0.0",
+    "@capacitor/cli": "^8.6.0",
+    "@resvg/resvg-js": "^2.6.2",
+    "@tabler/icons": "^3.0.0",
+    "simple-icons": "^16.0.0"
+  }
+}

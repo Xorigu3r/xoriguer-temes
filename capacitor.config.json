@@ -1,0 +1,6 @@
+{
+  "appId": "cat.xoriguer.temes",
+  "appName": "Temes",
+  "webDir": "www",
+  "android": { "backgroundColor": "#1E2A3B" }
+}

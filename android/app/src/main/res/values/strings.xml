@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Temes</string>
+    <string name="title_activity_main">Temes</string>
+    <string name="package_name">cat.xoriguer.temes</string>
+    <string name="custom_url_scheme">cat.xoriguer.temes</string>
+</resources>

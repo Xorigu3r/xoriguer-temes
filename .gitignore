@@ -1,0 +1,14 @@
+node_modules/
+dist/
+cache/
+temes/
+referencia/
+escriptori/node_modules/
+escriptori/www/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/capacitor-cordova-android-plugins/build/
+*.jks
+*.properties.local

@@ -1,0 +1,26 @@
+{
+  "name": "xoriguer-temes",
+  "version": "1.0.0",
+  "description": "Xoriguer Temes",
+  "author": "Xoriguer",
+  "homepage": "https://xoriguer.dev/",
+  "main": "main.js",
+  "private": true,
+  "build": {
+    "appId": "cat.xoriguer.temes",
+    "productName": "Xoriguer Temes",
+    "copyright": "Xoriguer",
+    "directories": { "output": "../dist/escriptori" },
+    "files": ["main.js", "preload.js", "icona.png", "www/**"],
+    "win": { "target": "nsis", "icon": "icona.ico" },
+    "nsis": {
+      "oneClick": false, "perMachine": false, "allowToChangeInstallationDirectory": true,
+      "artifactName": "XoriguerTemes-Instalador.${ext}", "shortcutName": "Xoriguer Temes",
+      "installerIcon": "icona.ico", "uninstallerIcon": "icona.ico"
+    }
+  },
+  "devDependencies": {
+    "electron": "33.2.1",
+    "electron-builder": "25.1.8"
+  }
+}
