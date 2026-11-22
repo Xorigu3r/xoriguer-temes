@@ -117,3 +117,5 @@ input[type=text] { width: 100%; }
 .quant { overflow: hidden; margin-bottom: 4px; }
 .cos-modal p { margin: 0 0 10px; }
 .previa-centre { display: block; width: min(260px, 70%); margin: 10px auto 4px; border-radius: 22px; border: 1px solid var(--linia); }
+.previa-centre.arrossega { touch-action: none; cursor: move; }
+.centrat { text-align: center; }

@@ -96,12 +96,13 @@
       <label class="check"><input type="checkbox" id="rellotge" checked> Rellotge Xoriguer a la pantalla de bloqueig</label>
       <p class="suau petit">Substitueix la pantalla de bloqueig de MIUI: hi ha el rellotge, la data i les notificacions; no hi ha els controls de música ni la drecera de la càmera. Es desbloqueja lliscant amunt (i després el PIN o l'empremta, com sempre).</p>
       <div id="rellotge-opcions">
-        <canvas id="previa-bloq" class="previa-centre" width="432" height="960"></canvas>
+        <canvas id="previa-bloq" class="previa-centre arrossega" width="432" height="960"></canvas>
+        <p class="suau petit centrat">Arrossega el rellotge per moure'l i estira les cantonades per fer-lo més gran o més petit.</p>
         <div class="sub">Estil del rellotge</div><div id="rl-estil" class="graella"></div>
         <div class="sub">Alineació</div><div id="rl-alinea"></div>
         <div class="lliscadors" style="margin-top:12px">
           <label class="lliscador"><span>Posició</span><input type="range" id="rl-posy" min="4" max="64" step="1"><output id="o-rl-posy"></output></label>
-          <label class="lliscador"><span>Mida</span><input type="range" id="rl-escala" min="50" max="140" step="5"><output id="o-rl-escala"></output></label>
+          <label class="lliscador"><span>Mida</span><input type="range" id="rl-escala" min="30" max="160" step="1"><output id="o-rl-escala"></output></label>
         </div>
         <label class="check"><input type="checkbox" id="rl-data" checked> Mostra la data</label>
       </div>

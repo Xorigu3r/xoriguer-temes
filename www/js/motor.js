@@ -691,7 +691,7 @@
 
   // ------------------------------------------------------------ pantalla de bloqueig pròpia (MAML) amb rellotge
   // Provat al Mi 10T Lite: component «lockscreen» amb advance/manifest.xml; el rellotge són imatges num_0..9 + num_dot.
-  const RELLOTGES = { taronja: 'Taronja', crema: 'Crema', or: 'Or', contorn: 'Contorn', fi: 'Fi' };
+  const RELLOTGES = { taronja: 'Taronja', crema: 'Crema', or: 'Or', contorn: 'Contorn', fi: 'Fi', luxeOr: 'Luxe daurat', luxePlata: 'Luxe platejat' };
   /** Com és cada rellotge. lletra: gruixuda|normal|fina|classica|maquina; ompli: color|degradat|or|plata|contorn;
    *  c1, c2 (degradat), sep (':' '·' ''), cp (color del separador, '' = com els números), vora + cv, cd (color de la data) */
   const RL_CFG = {
@@ -700,7 +700,11 @@
     or: { lletra: 'gruixuda', ompli: 'or', sep: ':', cp: '', cd: P.CREMA },
     contorn: { lletra: 'gruixuda', ompli: 'contorn', c1: P.CREMA, sep: ':', cp: P.TAR_A, cd: P.CREMA },
     fi: { lletra: 'fina', ompli: 'color', c1: P.CREMA, sep: ':', cp: P.TAR_A, cd: P.CREMA },
+    // rellotges d'agulles «de luxe»: esfera metàl·lica amb centre de carboni; les agulles giren (MAML rotation)
+    luxeOr: { tipus: 'agulles', metall: 'or', cd: '#F4E3B5' },
+    luxePlata: { tipus: 'agulles', metall: 'plata', cd: '#E8ECF0' },
   };
+  const esAgulles = (estil) => cfgRellotge(estil).tipus === 'agulles';
   const PROPIS_RL = {};
   function registraRellotge(id, nom, cfg) { RELLOTGES[id] = nom; RL_CFG[id] = cfg; PROPIS_RL[id] = true; }
   function treuRellotge(id) { delete RELLOTGES[id]; delete RL_CFG[id]; delete PROPIS_RL[id]; }
@@ -757,17 +761,139 @@
     const dig = [...'0123456789'].map((d) => fa(d, wd));
     return { dig, dos: fa(sep, wc), wd, wc, h, cd: cfg.cd || P.CREMA };
   }
-  /** Posicions (en coordenades de 1080 d'amplada) */
+  // ---------- rellotge d'agulles de luxe
+  const aMetall = (x, x0, y0, x1, y1, metall) => { const g = x.createLinearGradient(x0, y0, x1, y1); for (const [t, c] of METALLS[metall] || METALLS.or) g.addColorStop(t, rgb(c)); return g; };
+  const memoAgulles = new Map();
+  /** Esfera (D×D) i agulles (imatges apuntant amunt, amb el punt de gir px,py). r: {estil, escala, data} */
+  async function agulles(r) {
+    const cfg = cfgRellotge(r.estil), D = Math.max(200, Math.round(760 * (r.escala || 1)));
+    const clau = `${r.estil}|${D}|${r.data ? 1 : 0}|${cfg.metall}`;
+    if (memoAgulles.has(clau)) return memoAgulles.get(clau);
+    const m = cfg.metall || 'or', c = D / 2, R = D * 0.47;
+    const dial = tela(D), x = ctx2(dial);
+    const cercle = (rr, fill) => { x.beginPath(); x.arc(c, c, rr, 0, Math.PI * 2); x.fillStyle = fill; x.fill(); };
+    // ombra i bisell exterior
+    x.save(); x.shadowColor = 'rgba(0,0,0,0.6)'; x.shadowBlur = D * 0.03; x.shadowOffsetY = D * 0.012; cercle(R, '#000'); x.restore();
+    cercle(R, aMetall(x, c - R, c - R, c + R, c + R, m));
+    cercle(R * 0.955, aMetall(x, c + R, c + R, c - R, c - R, m));   // segon bisell (llum al revés)
+    // anell negre amb les marques dels minuts
+    cercle(R * 0.90, '#121418');
+    x.save(); x.translate(c, c);
+    for (let i = 0; i < 60; i++) {
+      const gran = i % 5 === 0;
+      x.save(); x.rotate(i * Math.PI / 30);
+      x.fillStyle = gran ? aMetall(x, 0, -R * 0.9, 0, -R * 0.8, m) : 'rgba(230,215,180,0.55)';
+      if (gran) x.fillRect(-R * 0.018, -R * 0.885, R * 0.036, R * 0.07); else x.fillRect(-R * 0.005, -R * 0.875, R * 0.01, R * 0.04);
+      x.restore();
+    }
+    x.restore();
+    // esfera de carboni (quadrets) amb vinyeta
+    x.save(); x.beginPath(); x.arc(c, c, R * 0.80, 0, Math.PI * 2); x.clip();
+    x.fillStyle = '#1B1F26'; x.fillRect(0, 0, D, D);
+    const q = Math.max(4, Math.round(D / 90));
+    for (let yy = 0; yy < D; yy += q) for (let xx = 0; xx < D; xx += q) {
+      if (((xx / q) + (yy / q)) % 2 === 0) { x.fillStyle = 'rgba(255,255,255,0.035)'; x.fillRect(xx, yy, q, q / 2); }
+      else { x.fillStyle = 'rgba(0,0,0,0.25)'; x.fillRect(xx, yy + q / 2, q, q / 2); }
+    }
+    const vg = x.createRadialGradient(c, c - R * 0.3, R * 0.1, c, c, R * 0.8);
+    vg.addColorStop(0, 'rgba(70,90,120,0.28)'); vg.addColorStop(1, 'rgba(0,0,0,0.55)');
+    x.fillStyle = vg; x.fillRect(0, 0, D, D);
+    x.restore();
+    x.beginPath(); x.arc(c, c, R * 0.80, 0, Math.PI * 2); x.lineWidth = R * 0.02; x.strokeStyle = aMetall(x, c - R, c - R, c + R, c + R, m); x.stroke();
+    // índexs aplicats (barres metàl·liques); a les 3 i les 9 hi ha les finestres de la data
+    x.save(); x.translate(c, c);
+    for (let h = 0; h < 12; h++) {
+      if (r.data && (h === 3 || h === 9)) continue;
+      x.save(); x.rotate(h * Math.PI / 6);
+      const w = R * (h === 0 ? 0.05 : 0.035), l = R * (h === 0 ? 0.17 : 0.13);
+      x.shadowColor = 'rgba(0,0,0,0.6)'; x.shadowBlur = R * 0.02; x.shadowOffsetY = R * 0.01;
+      x.fillStyle = aMetall(x, -w, -R * 0.75, w, -R * 0.6, m);
+      if (h === 0) { x.fillRect(-w * 1.3, -R * 0.75, w, l); x.fillRect(w * 0.3, -R * 0.75, w, l); } else x.fillRect(-w / 2, -R * 0.75, w, l);
+      x.restore();
+    }
+    x.restore();
+    // anell interior i logo Xoriguer
+    x.beginPath(); x.arc(c, c, R * 0.42, 0, Math.PI * 2); x.lineWidth = R * 0.008; x.strokeStyle = 'rgba(230,200,140,0.35)'; x.stroke();
+    try {
+      const lg = encaixa(await carregaImatge('img/logos/falco.png'), R * 0.42);
+      const ld = m === 'or' ? daurat(lg) : pinta(lg, (xx, w, h) => aMetall(xx, 0, 0, w, h, 'plata'));
+      x.drawImage(ld, c - ld.width / 2, c - R * 0.43 - ld.height / 2);
+    } catch { /* sense logo */ }
+    // finestres de la data (el text el posa MAML)
+    const caixes = [];
+    if (r.data) {
+      for (const cx of [c - R * 0.47, c + R * 0.47]) {
+        const w = R * 0.34, h = R * 0.15, bx = cx - w / 2, by = c - h / 2;
+        x.beginPath(); x.roundRect(bx, by, w, h, h * 0.2); x.fillStyle = '#0D0F12'; x.fill();
+        x.lineWidth = R * 0.012; x.strokeStyle = aMetall(x, bx, by, bx + w, by + h, m); x.stroke();
+        caixes.push({ cx, cy: c, w, h });
+      }
+    }
+    // agulles
+    const agulla = (llarg, cua, ample, fes) => {
+      const p = Math.ceil(R * 0.04), w = Math.ceil(ample + 2 * p), h = Math.ceil(llarg + cua + 2 * p);
+      const t = tela(w, h), xt = ctx2(t), px = w / 2, py = p + llarg;
+      xt.save(); xt.shadowColor = 'rgba(0,0,0,0.55)'; xt.shadowBlur = p * 0.8; xt.shadowOffsetY = p * 0.4;
+      fes(xt, px, py); xt.restore();
+      return { img: t, px, py };
+    };
+    const baton = (llarg, cua, ample) => agulla(llarg, cua, ample, (xt, px, py) => {
+      xt.beginPath(); xt.moveTo(px, py - llarg); xt.lineTo(px + ample / 2, py - llarg * 0.82); xt.lineTo(px + ample / 2, py + cua);
+      xt.lineTo(px - ample / 2, py + cua); xt.lineTo(px - ample / 2, py - llarg * 0.82); xt.closePath();
+      xt.fillStyle = aMetall(xt, px - ample, py - llarg, px + ample, py, m); xt.fill();
+      xt.shadowColor = 'transparent';
+      xt.fillStyle = 'rgba(15,18,22,0.85)'; xt.fillRect(px - ample * 0.18, py - llarg * 0.78, ample * 0.36, llarg * 0.62);
+      xt.fillStyle = 'rgba(246,239,226,0.9)'; xt.fillRect(px - ample * 0.1, py - llarg * 0.74, ample * 0.2, llarg * 0.5);
+    });
+    const hora = baton(R * 0.46, R * 0.1, R * 0.085), minut = baton(R * 0.68, R * 0.12, R * 0.065);
+    const segon = agulla(R * 0.74, R * 0.22, R * 0.11, (xt, px, py) => {
+      xt.fillStyle = P.TAR_B; xt.fillRect(px - R * 0.007, py - R * 0.74, R * 0.014, R * 0.96);
+      xt.beginPath(); xt.arc(px, py + R * 0.16, R * 0.035, 0, Math.PI * 2); xt.fill();
+      xt.beginPath(); xt.arc(px, py, R * 0.05, 0, Math.PI * 2); xt.fillStyle = aMetall(xt, px - R * 0.05, py - R * 0.05, px + R * 0.05, py + R * 0.05, m); xt.fill();
+      xt.beginPath(); xt.arc(px, py, R * 0.02, 0, Math.PI * 2); xt.fillStyle = P.TAR_B; xt.fill();
+    });
+    const o = { tipus: 'agulles', D, dial, hora, minut, segon, caixes, R, cd: cfg.cd || P.CREMA };
+    memoAgulles.set(clau, o);
+    return o;
+  }
+  /** Peces del rellotge: xifres (digital) o esfera i agulles. Retorna també l'amplada T i l'alçada h del rellotge. */
+  async function peces(r) {
+    if (esAgulles(r.estil)) { const a = await agulles(r); return { ...a, T: a.D, h: a.D }; }
+    const xf = await xifres(r); return { ...xf, T: 4 * xf.wd + xf.wc };
+  }
+  /** Posicions (en coordenades de 1080 d'amplada). alinea 'lliure' fa servir r.cx (centre, 0..1). */
   function lloc(r, xf) {
-    const T = 4 * xf.wd + xf.wc;
-    const x0 = r.alinea === 'esquerra' ? 70 : r.alinea === 'dreta' ? 1010 - T : Math.round(540 - T / 2);
+    const T = xf.T;
+    const x0 = r.alinea === 'esquerra' ? 70 : r.alinea === 'dreta' ? 1010 - T
+      : r.alinea === 'lliure' ? Math.round(Math.max(0, Math.min(1080 - T, 1080 * (r.cx == null ? 0.5 : r.cx) - T / 2))) : Math.round(540 - T / 2);
+    if (xf.tipus === 'agulles') return { T, x0 };
     return { T, x0, xs: [x0, x0 + xf.wd, x0 + 2 * xf.wd + xf.wc, x0 + 3 * xf.wd + xf.wc], xd: x0 + 2 * xf.wd };
+  }
+  const xData = (r, L) => (r.alinea === 'esquerra' ? L.x0 + 10 : r.alinea === 'dreta' ? L.x0 + L.T - 10 : L.x0 + L.T / 2);
+  const alinData = (r) => (r.alinea === 'esquerra' ? 'left' : r.alinea === 'dreta' ? 'right' : 'center');
+  /** Caixa del rellotge en coordenades de 1080 d'amplada (per arrossegar-lo a la vista prèvia) */
+  async function caixaRellotge(r) { const xf = await peces(r), L = lloc(r, xf); return { x: L.x0, w: L.T, h: xf.h + (xf.tipus !== 'agulles' && r.data ? 80 : 0) }; }
+  /** Dibuixa l'esfera i les agulles a (x0,y0) amb escala k a l'hora donada */
+  function pintaAgulles(x, a, x0, y0, k, ara) {
+    x.drawImage(a.dial, x0, y0, a.D * k, a.D * k);
+    const c = a.D / 2, h = ara.getHours() % 12, mi = ara.getMinutes(), s = ara.getSeconds();
+    if (a.caixes.length) {
+      x.fillStyle = a.cd; x.textAlign = 'center'; x.textBaseline = 'middle'; x.font = `600 ${a.R * 0.095 * k}px Roboto, "Segoe UI", sans-serif`;
+      x.fillText(String(ara.getDate()), x0 + a.caixes[0].cx * k, y0 + a.caixes[0].cy * k);
+      x.fillText(ara.toLocaleDateString(undefined, { weekday: 'short' }).replace('.', ''), x0 + a.caixes[1].cx * k, y0 + a.caixes[1].cy * k);
+      x.textBaseline = 'alphabetic';
+    }
+    for (const [ag, graus] of [[a.hora, h * 30 + mi / 2], [a.minut, mi * 6 + s / 10], [a.segon, s * 6]]) {
+      x.save(); x.translate(x0 + c * k, y0 + c * k); x.rotate(graus * Math.PI / 180);
+      x.drawImage(ag.img, -ag.px * k, -ag.py * k, ag.img.width * k, ag.img.height * k); x.restore();
+    }
   }
   /** Dibuixa el rellotge (hora actual) a sobre d'un fons de bloqueig, per a les vistes prèvies */
   async function dibuixaRellotge(canvas, r) {
-    const xf = await xifres(r), L = lloc(r, xf), k = canvas.width / 1080, x = ctx2(canvas);
+    const xf = await peces(r), L = lloc(r, xf), k = canvas.width / 1080, x = ctx2(canvas);
     const ara = new Date(), hh = String(ara.getHours()).padStart(2, '0'), mm = String(ara.getMinutes()).padStart(2, '0');
     const y = canvas.height * (r.posy / 100);
+    if (xf.tipus === 'agulles') { pintaAgulles(x, xf, L.x0 * k, y, k, ara); return; }
     const ds = [hh[0], hh[1], mm[0], mm[1]];
     x.save(); x.shadowColor = 'rgba(0,0,0,0.35)'; x.shadowBlur = 12 * k; x.shadowOffsetY = 4 * k;
     ds.forEach((d, i) => x.drawImage(xf.dig[+d], L.xs[i] * k, y, xf.wd * k, xf.h * k));
@@ -775,15 +901,19 @@
     x.restore();
     if (r.data) {
       x.fillStyle = xf.cd; x.font = `${46 * k}px Roboto, "Segoe UI", sans-serif`;
-      x.textAlign = r.alinea === 'esquerra' ? 'left' : r.alinea === 'dreta' ? 'right' : 'center';
-      const dx = r.alinea === 'esquerra' ? L.x0 + 10 : r.alinea === 'dreta' ? L.x0 + L.T - 10 : 540;
-      x.fillText(ara.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' }), dx * k, y + (xf.h + 60) * k);
+      x.textAlign = alinData(r);
+      x.fillText(ara.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' }), xData(r, L) * k, y + (xf.h + 60) * k);
     }
   }
   /** Mostra petita d'un estil de rellotge («12:45» i la data) sobre fons pissarra */
   async function mostraRellotge(canvas, estil, ambData) {
     const x = ctx2(canvas), W = canvas.width, H = canvas.height;
     x.fillStyle = degradat(x, W, H, P.FONS_A, P.FONS_B); x.fillRect(0, 0, W, H);
+    if (esAgulles(estil)) {   // esfera petita a les 10:10
+      const a = await agulles({ estil, escala: 0.5, data: true }), k = (H * 0.92) / a.D;
+      pintaAgulles(x, a, (W - a.D * k) / 2, H * 0.04, k, new Date(2026, 0, 1, 10, 10, 32));
+      return;
+    }
     const xf = await xifres({ estil, escala: 1 });
     const T = 4 * xf.wd + xf.wc, alt = ambData ? H * 0.62 : H * 0.8;
     const k = Math.min(W * 0.9 / T, alt / xf.h);
@@ -801,10 +931,31 @@
   const escX = (s) => String(s).replace(/[<>&"']/g, (m) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' }[m]));
   /** Component «lockscreen». r: {estil, escala, posy, alinea, data, llisca (text), notificacions} */
   async function componentBloqueig(r) {
-    const xf = await xifres(r), L = lloc(r, xf);
+    const xf = await peces(r), L = lloc(r, xf);
     const ya = '#screen_height*#posy/100';
-    const alin = r.alinea === 'esquerra' ? 'left' : r.alinea === 'dreta' ? 'right' : 'center';
-    const dx = r.alinea === 'esquerra' ? L.x0 + 10 : r.alinea === 'dreta' ? L.x0 + L.T - 10 : 540;
+    const alin = alinData(r), dx = xData(r, L);
+    let rellotgeXml, notiY;
+    if (xf.tipus === 'agulles') {
+      const c = xf.D / 2, cx = L.x0 + c;
+      const ag = (nom, a, graus) => `    <Image src="rellotge/${nom}.png" x="${Math.round(cx - a.px)}" y="${ya}+${Math.round(c - a.py)}" pivotX="${Math.round(a.px)}" pivotY="${Math.round(a.py)}" rotation="${graus}"/>`;
+      const fd = Math.round(xf.R * 0.095);
+      rellotgeXml = [
+        `    <Image src="rellotge/esfera.png" x="${L.x0}" y="${ya}"/>`,
+        ...xf.caixes.map((b, i) => `    <DateTime align="center" alignV="center" color="${xf.cd}" format="${i ? 'EEE' : 'd'}" size="${fd}" bold="true" x="${Math.round(L.x0 + b.cx)}" y="${ya}+${Math.round(b.cy)}"/>`),
+        ag('agulla_h', xf.hora, '(#hour24%12)*30+#minute*0.5'),
+        ag('agulla_m', xf.minut, '#minute*6+#second*0.1'),
+        ag('agulla_s', xf.segon, '#second*6'),
+      ].join('\n');
+      notiY = xf.D + 40;
+    } else {
+      rellotgeXml = `    <Image src="time/num.png" srcid="#hora/10" x="${L.xs[0]}" y="${ya}"/>
+    <Image src="time/num.png" srcid="#hora%10" x="${L.xs[1]}" y="${ya}"/>
+    <Image src="time/num_dot.png" x="${L.xd}" y="${ya}"/>
+    <Image src="time/num.png" srcid="#minute/10" x="${L.xs[2]}" y="${ya}"/>
+    <Image src="time/num.png" srcid="#minute%10" x="${L.xs[3]}" y="${ya}"/>
+    <DateTime align="${alin}" color="${xf.cd}" format="EEEE, d MMMM" size="46" visibility="#data" x="${dx}" y="${ya}+${xf.h + 20}"/>`;
+      notiY = xf.h + 130;
+    }
     const man = `<?xml version="1.0" encoding="utf-8"?>
 <!-- Xoriguer Temes: pantalla de bloqueig amb rellotge propi -->
 <Lockscreen displayDesktop="false" frameRate="60" screenWidth="1080" version="2">
@@ -816,13 +967,8 @@
   <Var name="hora" expression="ifelse(#time_format,#hour24,#hour12,#hour12,12)"/>
   <Wallpaper/>
   <Group x="0" y="#defaultScreen_y">
-    <Image src="time/num.png" srcid="#hora/10" x="${L.xs[0]}" y="${ya}"/>
-    <Image src="time/num.png" srcid="#hora%10" x="${L.xs[1]}" y="${ya}"/>
-    <Image src="time/num_dot.png" x="${L.xd}" y="${ya}"/>
-    <Image src="time/num.png" srcid="#minute/10" x="${L.xs[2]}" y="${ya}"/>
-    <Image src="time/num.png" srcid="#minute%10" x="${L.xs[3]}" y="${ya}"/>
-    <DateTime align="${alin}" color="${xf.cd}" format="EEEE, d MMMM" size="46" visibility="#data" x="${dx}" y="${ya}+${xf.h + 20}"/>
-    <Group visibility="#hasnotifications" x="0" y="${ya}+${xf.h + 130}">
+${rellotgeXml}
+    <Group visibility="#hasnotifications" x="0" y="${ya}+${notiY}">
       <List align="center" data="icon:bitmap,title:string,content:string,time:string,info:string,subtext:string,key:int" maxHeight="${220 * 3}" name="notification_list" visibility="#hasnotifications" w="#screen_width" x="540" y="0">
         <Item align="center" h="220" w="940" x="540" y="0">
           <Button alignChildren="true" h="220" w="940" x="0" y="0">
@@ -897,8 +1043,13 @@
     const zl = new g.Zip();
     zl.afegeix('advance/manifest.xml', man);
     zl.afegeix('advance/config.xml', config);
-    for (let d = 0; d < 10; d++) zl.afegeix(`advance/time/num_${d}.png`, await aBytes(xf.dig[d]));
-    zl.afegeix('advance/time/num_dot.png', await aBytes(xf.dos));
+    if (xf.tipus === 'agulles') {
+      zl.afegeix('advance/rellotge/esfera.png', await aBytes(xf.dial));
+      for (const [n, a] of [['agulla_h', xf.hora], ['agulla_m', xf.minut], ['agulla_s', xf.segon]]) zl.afegeix(`advance/rellotge/${n}.png`, await aBytes(a.img));
+    } else {
+      for (let d = 0; d < 10; d++) zl.afegeix(`advance/time/num_${d}.png`, await aBytes(xf.dig[d]));
+      zl.afegeix('advance/time/num_dot.png', await aBytes(xf.dos));
+    }
     // icona d'ajustos (Tabler «adjustments») en crema
     const aj = await carregaImatge(svgURL('<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="#F6EFE2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/><path d="M6 4v4"/><path d="M6 12v8"/><path d="M10 16a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/><path d="M12 4v10"/><path d="M12 18v2"/><path d="M16 7a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/><path d="M18 4v1"/><path d="M18 9v11"/></svg>'));
     const ca = tela(72); ctx2(ca).drawImage(aj, 0, 0);
@@ -981,5 +1132,5 @@
   }
 
   g.Motor = { ESTILS, FONS, LOGOS, P, S, icona, fons, creaTema, carregaImatge, colorApp, registraEstil, treuEstil, registraFons, treuFons, previaCentre, RELLOTGES, dibuixaRellotge,
-    registraRellotge, treuRellotge, mostraRellotge, PROPIS_RL };
+    registraRellotge, treuRellotge, mostraRellotge, PROPIS_RL, caixaRellotge, esAgulles };
 })(window);

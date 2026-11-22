@@ -1,7 +1,7 @@
 /* Xoriguer Temes — interfície. */
 'use strict';
 (function () {
-  const VERSIO = '1.6.0';
+  const VERSIO = '1.7.0';
   const URL_VERSIO = 'https://xoriguer.dev/versions/temes/versio.json';
   const $ = (s) => document.querySelector(s);
   const T_ = (s, v) => I18N.t(s, v);
@@ -34,11 +34,13 @@
     dyInici: desat.dyInici || 0, dyBloq: desat.dyBloq || 0, escala: desat.escala || 1, senseLogo: !!desat.senseLogo,
     W: 1080, H: 2400, apps: null, info: null, resultat: null,
     cc: Object.assign({ on: '#FFA82E', segon: '#F2650F', off: 'com_ara', icona: '#FFFFFF', barra: '#FFA82E', rellotge: '#F6EFE2' }, desat.cc || {}),
-    rl: Object.assign({ estil: 'taronja', posy: 20, alinea: 'centre', escala: 0.8, data: true }, desat.rl || {}),
+    rl: Object.assign({ estil: 'taronja', posy: 20, alinea: 'centre', escala: 0.55, data: true }, desat.rl || {}),
   };
+  // abans el rellotge digital ocupava gairebé tota l'amplada (0,8); ara per defecte la meitat
+  if (!desat.rlMida) { if (E.rl.escala === 0.8) E.rl.escala = 0.55; desat.rlMida = 1; }
   function guarda() {
     escriu('xt-opcions', { estil: E.estil, fons: E.fons, palFons: E.palFons, accent: E.accent, model: E.model, cc: E.cc, rl: E.rl,
-      dyInici: E.dyInici, dyBloq: E.dyBloq, escala: E.escala, senseLogo: E.senseLogo, llengua: desat.llengua || '', senseCarpeta: desat.senseCarpeta });
+      dyInici: E.dyInici, dyBloq: E.dyBloq, escala: E.escala, senseLogo: E.senseLogo, llengua: desat.llengua || '', senseCarpeta: desat.senseCarpeta, rlMida: 1 });
   }
 
 
@@ -52,7 +54,59 @@
     const f = await M.fons(M.FONS[E.fons] ? E.fons : 'LogotipOrTaronja', c.width, c.height, true, opcionsFons());
     if (meu !== blGen) return;
     const x = c.getContext('2d'); x.drawImage(f, 0, 0);
-    if ($('#rellotge').checked) await M.dibuixaRellotge(c, E.rl);
+    if (!$('#rellotge').checked) return;
+    await M.dibuixaRellotge(c, E.rl);
+    if (meu !== blGen) return;
+    // marc amb nanses: s'arrossega per moure'l i per les cantonades per canviar-ne la mida
+    const b = await caixaCanvas(c);
+    x.save(); x.setLineDash([8, 6]); x.lineWidth = 2; x.strokeStyle = 'rgba(255,168,46,0.9)'; x.strokeRect(b.x, b.y, b.w, b.h); x.setLineDash([]);
+    for (const [hx, hy] of [[b.x, b.y], [b.x + b.w, b.y], [b.x, b.y + b.h], [b.x + b.w, b.y + b.h]]) {
+      x.beginPath(); x.arc(hx, hy, 9, 0, Math.PI * 2); x.fillStyle = '#FFA82E'; x.fill(); x.lineWidth = 2; x.strokeStyle = '#1E2A3B'; x.stroke();
+    }
+    x.restore();
+  }
+  async function caixaCanvas(c) {
+    const k = c.width / 1080, cb = await M.caixaRellotge(E.rl);
+    return { x: cb.x * k, y: c.height * E.rl.posy / 100, w: cb.w * k, h: cb.h * k };
+  }
+  /** Arrossegar el rellotge a la vista prèvia: dins = moure'l; cantonades = mida (des del centre) */
+  function lligaArrossega() {
+    const c = $('#previa-bloq');
+    let ini = null;
+    const punt = (e) => { const r = c.getBoundingClientRect(); return { x: (e.clientX - r.left) * c.width / r.width, y: (e.clientY - r.top) * c.height / r.height, esc: c.width / r.width }; };
+    c.addEventListener('pointerdown', async (e) => {
+      if (!$('#rellotge').checked) return;
+      const p = punt(e), b = await caixaCanvas(c), marge = 22 * p.esc;
+      const cant = [[b.x, b.y], [b.x + b.w, b.y], [b.x, b.y + b.h], [b.x + b.w, b.y + b.h]].findIndex(([hx, hy]) => Math.hypot(p.x - hx, p.y - hy) < marge);
+      const dins = p.x > b.x - marge && p.x < b.x + b.w + marge && p.y > b.y - marge && p.y < b.y + b.h + marge;
+      if (cant < 0 && !dins) return;
+      ini = { p, b, cant, posy: E.rl.posy, escala: E.rl.escala, cx: (b.x + b.w / 2) / c.width };
+      c.setPointerCapture(e.pointerId); e.preventDefault();
+    });
+    c.addEventListener('pointermove', (e) => {
+      if (!ini) return;
+      const p = punt(e), dx = p.x - ini.p.x, dy = p.y - ini.p.y;
+      if (ini.cant < 0) {   // moure
+        E.rl.posy = Math.round(Math.max(2, Math.min(85, ini.posy + dy / c.height * 100)) * 2) / 2;
+        E.rl.alinea = 'lliure'; E.rl.cx = Math.max(0.05, Math.min(0.95, ini.cx + dx / c.width));
+      } else {              // mida: la cantonada s'allunya o s'acosta del centre
+        const dreta = ini.cant % 2 === 1, baix = ini.cant >= 2;
+        const nouW = Math.max(40, ini.b.w + (dreta ? dx : -dx) * 2);
+        E.rl.escala = Math.round(Math.max(0.3, Math.min(1.6, ini.escala * nouW / ini.b.w)) * 100) / 100;
+        if (!baix) {   // estirant des de dalt, la part de baix es queda on és
+          const nouH = ini.b.h * E.rl.escala / ini.escala;
+          E.rl.posy = Math.max(2, (ini.b.y + ini.b.h - nouH) / c.height * 100);
+        }
+        if (E.rl.alinea !== 'lliure') { E.rl.alinea = 'lliure'; E.rl.cx = ini.cx; }
+      }
+      sincronitza(); pintaPreviaBloq();
+    });
+    const acaba = () => { if (!ini) return; ini = null; E.rl.posy = Math.round(E.rl.posy * 2) / 2; guarda(); sincronitza(); pintaRellotge(); };
+    c.addEventListener('pointerup', acaba); c.addEventListener('pointercancel', acaba);
+  }
+  function sincronitza() {
+    $('#rl-posy').value = String(Math.round(E.rl.posy)); $('#rl-escala').value = String(Math.round(E.rl.escala * 100));
+    $('#o-rl-posy').textContent = Math.round(E.rl.posy) + '%'; $('#o-rl-escala').textContent = Math.round(E.rl.escala * 100) + '%';
   }
   function pintaRellotge() {
     const canvia = (k) => (v) => { E.rl[k] = v; guarda(); pintaPreviaBloq(); };
@@ -666,6 +720,7 @@
     pintaXips('#pal-accent', PAL_ACCENT, 'accent', (p) => p.c);
     pintaCentre();
     pintaRellotge();
+    lligaArrossega();
     aplicaModel();
     buscaTelefon();
   }
