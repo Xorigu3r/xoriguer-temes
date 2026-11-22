@@ -1,7 +1,7 @@
 /* Xoriguer Temes — interfície. */
 'use strict';
 (function () {
-  const VERSIO = '1.5.0';
+  const VERSIO = '1.6.0';
   const URL_VERSIO = 'https://xoriguer.dev/versions/temes/versio.json';
   const $ = (s) => document.querySelector(s);
   const T_ = (s, v) => I18N.t(s, v);
@@ -374,7 +374,7 @@
         bloc('Forma', segment([['squircle', 'Arrodonida'], ['cercle', 'Rodona'], ['quadrat', 'Quadrada']], cfg.forma, (v) => { cfg.forma = v; refresca(); })),
         bloc('Fons de la icona', segment([['app', 'Color de cada app'], ['color', 'Un color'], ['degradat', 'Degradat']], cfg.fons, (v) => { cfg.fons = v; pintaColorsFons(); refresca(); }), el('div', { style: 'height:8px' }), blocColorFons),
         bloc('Dibuix', segment([['blanc', 'Blanc'], ['app', 'Color de cada app'], ['color', 'Un color']], cfg.glif, (v) => { cfg.glif = v; pintaColorGlif(); refresca(); }), el('div', { style: 'height:8px' }), blocColorGlif),
-        bloc('Marc metàl·lic', segment([['cap', 'Sense marc'], ['or', 'Daurat'], ['plata', 'Platejat']], cfg.marc || 'cap', (v) => { cfg.marc = v; refresca(); })),
+        bloc('Marc metàl·lic', segment([['cap', 'Sense marc'], ['or', 'Daurat'], ['plata', 'Platejat'], ['bronze', 'De bronze']], cfg.marc || 'cap', (v) => { cfg.marc = v; refresca(); })),
         bloc('Acabat', chk('Relleu 3D (brillantor i ombra)', 'relleu'), chk('Vora de color', 'vora')),
         bloc('Mida del dibuix', mida));
       pintaColorsFons(); pintaColorGlif(); refresca();

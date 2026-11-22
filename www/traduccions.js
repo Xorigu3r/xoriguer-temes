@@ -173,6 +173,8 @@
     ['Sense marc', 'Sin marco', 'Sans cadre', 'No frame'],
     ['Daurat', 'Dorado', 'Doré', 'Gold'],
     ['Platejat', 'Plateado', 'Argenté', 'Silver'],
+    ['Marc de bronze', 'Marco de bronce', 'Cadre en bronze', 'Bronze frame'],
+    ['De bronze', 'De bronce', 'En bronze', 'Bronze'],
     ['Als estils amb marc metàl·lic, la icona original de cada app a dins (en lloc del dibuix Xoriguer)',
       'En los estilos con marco metálico, el icono original de cada app dentro (en lugar del dibujo Xoriguer)',
       'Dans les styles à cadre métallique, l’icône d’origine de chaque appli à l’intérieur (au lieu du dessin Xoriguer)',

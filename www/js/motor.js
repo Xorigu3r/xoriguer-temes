@@ -146,6 +146,8 @@
     PissarraColor: { nom: 'Pissarra Color', forma: 'squircle', gruix: 1.6, color: true, fons: 'LogotipOr' },
     MarcOr: { nom: 'Marc daurat', forma: 'squircle', gruix: 2.3, color: true, fons: 'LogotipOr', marc: 'or' },
     MarcPlata: { nom: 'Marc platejat', forma: 'squircle', gruix: 2.3, color: true, fons: 'Logotip', marc: 'plata' },
+    // marc de bronze prim, sense brillantor de vidre (com el tema que l'usuari tenia al mòbil)
+    MarcBronze: { nom: 'Marc de bronze', forma: 'squircle', gruix: 2.3, color: true, fons: 'Logotip', marc: 'bronze', prim: true },
   };
 
   function fonsXoriguer(estil, n) {
@@ -321,7 +323,22 @@
       [0.72, [0xF0, 0xD9, 0xA8]], [0.88, [0xA0, 0x74, 0x34]], [1, [0x6E, 0x4A, 0x18]]],
     plata: [[0, [0x5E, 0x64, 0x6E]], [0.18, [0xD8, 0xDD, 0xE4]], [0.36, [0xFF, 0xFF, 0xFF]], [0.52, [0x96, 0x9E, 0xAA]],
       [0.72, [0xE6, 0xEA, 0xEF]], [0.88, [0x82, 0x8A, 0x96]], [1, [0x4E, 0x54, 0x5E]]],
+    bronze: [[0, [0x4A, 0x2E, 0x14]], [0.18, [0xC8, 0x92, 0x5A]], [0.36, [0xF4, 0xD4, 0xA4]], [0.52, [0x8E, 0x5E, 0x30]],
+      [0.72, [0xDA, 0xAA, 0x72]], [0.88, [0x6E, 0x46, 0x22]], [1, [0x3E, 0x26, 0x10]]],
   };
+  const mides = (n, o) => ({ inset: n * 0.045, gruix: n * (o.prim ? 0.042 : 0.065) });
+  /** Només l'anell metàl·lic (transparent per dins), per a les icones i per a icon_border de MIUI */
+  function anellMarc(n, fo, o) {
+    const { inset, gruix } = mides(n, o);
+    const ext = forma(n, fo, inset), int = forma(n, fo, inset + gruix);
+    const out = tela(n), xo = ctx2(out);
+    xo.drawImage(ombra(ext, K * 6, 0.6, K * 5), 0, 0);
+    xo.drawImage(pinta(ext, (x) => gradMetall(x, n, o.metall)), 0, 0);
+    bisell(xo, ext, n, K * 3, 'rgba(255,255,255,0.7)', 'rgba(40,25,5,0.55)');
+    xo.globalCompositeOperation = 'destination-out'; xo.drawImage(int, 0, 0); xo.globalCompositeOperation = 'source-over';
+    xo.drawImage(pinta(vora(n, fo, inset + gruix - K, K * 1.5), 'rgba(40,25,5,0.55)'), 0, 0);
+    return { anell: out, int };
+  }
   function gradMetall(x, n, tipus) {
     const gr = x.createLinearGradient(0, 0, n, n);
     for (const [t, c] of METALLS[tipus] || METALLS.or) gr.addColorStop(t, rgb(c));
@@ -346,7 +363,7 @@
   async function iconaMarc(paquet, original, o) {
     const n = S * K, out = tela(n), xo = ctx2(out);
     const fo = o.forma || 'squircle';
-    const inset = n * 0.045, gruix = n * 0.065;
+    const { inset, gruix } = mides(n, o);
     const ext = forma(n, fo, inset), int = forma(n, fo, inset + gruix);
     // ombra i marc
     const marc = pinta(ext, (x) => gradMetall(x, n, o.metall));
@@ -393,17 +410,17 @@
     xbr.fillStyle = gr;
     xbr.beginPath(); xbr.ellipse(n / 2, n * 0.27, n * 0.36, n * 0.21, 0, 0, Math.PI * 2); xbr.fill();
     xbr.globalCompositeOperation = 'destination-in'; xbr.drawImage(int, 0, 0);
-    xo.globalAlpha = 0.85; xo.drawImage(br, 0, 0); xo.globalAlpha = 1;
+    if (!o.prim) { xo.globalAlpha = 0.85; xo.drawImage(br, 0, 0); xo.globalAlpha = 1; }
     return redueix(out);
   }
 
   function icona(estil, paquet, original, plena) {
     const e = ESTILS[estil];
-    if (e.marc) return iconaMarc(paquet, original, { forma: e.forma, metall: e.marc, plena });
+    if (e.marc) return iconaMarc(paquet, original, { forma: e.forma, metall: e.marc, plena, prim: e.prim });
     if (e.personal && e.personal.marc && e.personal.marc !== 'cap') {
       const c = e.personal;
       return iconaMarc(paquet, original, {
-        forma: c.forma, metall: c.marc, plena, mida: c.mida,
+        forma: c.forma, metall: c.marc, plena, mida: c.mida, prim: c.marc === 'bronze',
         f1: c.fons === 'app' ? null : c.c1, f2: c.fons === 'app' ? null : (c.fons === 'degradat' ? c.c2 : enfosqueixHex(c.c1)),
         cg: c.glif === 'color' ? c.cg : c.glif === 'app' ? hex(aclareix(barreja(...colorApp(paquet), 0.5), 0.35)) : null,
       });
@@ -420,6 +437,13 @@
   /** Icones per a apps sense icona al tema (MIUI posa fons + icona retallada + vora) */
   function iconesFallback(estil) {
     const n = S * K, e = ESTILS[estil];
+    const metall = e.marc || (e.personal && e.personal.marc !== 'cap' && e.personal.marc);
+    if (metall) {   // estils amb marc: MIUI posa l'anell (icon_border) damunt de la icona original retallada (icon_mask)
+      const { anell, int } = anellMarc(n, e.forma, { metall, prim: e.prim || metall === 'bronze' });
+      const fonsM = pinta(int, (x, w, h) => degradat(x, w, h, P.FONS3, P.FONS));
+      const buit = tela(n);
+      return { 'icon_background.png': redueix(fonsM), 'icon_mask.png': redueix(int), 'icon_border.png': redueix(anell), 'icon_pattern.png': redueix(buit) };
+    }
     let fons;
     if (e.personal) {
       const c = e.personal.fons === 'app' ? '#4A6085' : e.personal.c1;
