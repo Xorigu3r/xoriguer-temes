@@ -53,6 +53,8 @@
     <section class="targeta">
       <h2><span class="num">3</span><span>Fons de pantalla</span></h2>
       <div id="fons" class="graella fons"></div>
+      <label class="check" id="l-logo"><input type="checkbox" id="amb-logo" checked> Posa el logo Xoriguer al fons de pantalla</label>
+      <div id="logo-opcions">
       <div class="sub">Posició i mida del logo</div>
       <div class="lliscadors">
         <label class="lliscador"><span>Inici</span><input type="range" id="dy-inici" min="-30" max="30" step="1" value="0"><output id="o-inici"></output></label>
@@ -60,6 +62,7 @@
         <label class="lliscador"><span>Mida</span><input type="range" id="escala" min="50" max="150" step="5" value="100"><output id="o-escala"></output></label>
       </div>
       <button id="b-reinicia" class="sec petit">Posició i mida originals</button>
+      </div>
     </section>
 
     <!-- 4. sistema -->
@@ -94,7 +97,7 @@
       <p class="suau petit">Substitueix la pantalla de bloqueig de MIUI: hi ha el rellotge, la data i les notificacions; no hi ha els controls de música ni la drecera de la càmera. Es desbloqueja lliscant amunt (i després el PIN o l'empremta, com sempre).</p>
       <div id="rellotge-opcions">
         <canvas id="previa-bloq" class="previa-centre" width="432" height="960"></canvas>
-        <div class="sub">Estil del rellotge</div><div id="rl-estil"></div>
+        <div class="sub">Estil del rellotge</div><div id="rl-estil" class="graella"></div>
         <div class="sub">Alineació</div><div id="rl-alinea"></div>
         <div class="lliscadors" style="margin-top:12px">
           <label class="lliscador"><span>Posició</span><input type="range" id="rl-posy" min="4" max="64" step="1"><output id="o-rl-posy"></output></label>

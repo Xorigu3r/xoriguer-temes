@@ -537,7 +537,7 @@
       } else {
         x.fillStyle = degradat(x, W, H, pers.c1 || P.FONS_A, pers.c2 || P.FONS_B); x.fillRect(0, 0, W, H);
       }
-      if (pers.logo && pers.logo !== 'cap') await dibuixaLogo(x, pers.logo, W, H, bloqueig, o, pers.aura !== false);
+      if (!o.senseLogo && pers.logo && pers.logo !== 'cap') await dibuixaLogo(x, pers.logo, W, H, bloqueig, o, pers.aura !== false);
       return c;
     }
     if (estil.startsWith('Falco') || estil.startsWith('Logotip')) {
@@ -545,7 +545,7 @@
       const or_ = estil.includes('Or');
       resplendor(x, W / 2, H * 0.52, 650 * u, or_ ? [0xE8, 0xB8, 0x4A] : hex2rgb(P.TAR_B), or_ ? 0.10 : 0.18);
       resplendor(x, W * 0.1, H * 0.08, 600 * u, [0x3A, 0x55, 0x7A], 0.35);
-      await dibuixaLogo(x, estil, W, H, bloqueig, o);
+      if (!o.senseLogo) await dibuixaLogo(x, estil, W, H, bloqueig, o);
       return c;
     }
     const simbol = await carregaImatge('img/logos/simbol.png');
@@ -555,7 +555,7 @@
       x.fillStyle = degradat(x, W, H, P.FONS_A, P.FONS_B); x.fillRect(0, 0, W, H);
       resplendor(x, W * 0.95, H * 0.95, 700 * u, hex2rgb(P.TAR_B), 0.14);
       resplendor(x, W * 0.1, H * 0.15, 700 * u, [0x3A, 0x55, 0x7A], 0.35);
-      if (bloqueig) centra(c, encaixa(simbol, W * 0.78 * esc), H * 0.17 + dB);
+      if (o.senseLogo) { /* sense logo */ } else if (bloqueig) centra(c, encaixa(simbol, W * 0.78 * esc), H * 0.17 + dB);
       else { x.globalAlpha = 0.16; x.drawImage(encaixa(simbol, W * 1.25 * esc), W * 0.05, H * 0.60 + dI); x.globalAlpha = 1; }
     } else if (estil === 'Taronja') {
       x.fillStyle = degradat(x, W, H, '#223146', '#2C3448'); x.fillRect(0, 0, W, H);
@@ -566,10 +566,12 @@
         resplendor(x, W / 2, H * 1.10, 900 * u, hex2rgb(P.TAR_B), 0.45);
         resplendor(x, W * 0.1, -H * 0.05, 600 * u, hex2rgb(P.TAR_A), 0.18);
       }
-      const sil = pinta(encaixa(simbol, W * (bloqueig ? 0.80 : 0.95) * esc), P.CREMA);
-      x.globalAlpha = bloqueig ? 0.92 : 0.22;
-      if (bloqueig) centra(c, sil, H * 0.10 + dB); else x.drawImage(sil, (W - sil.width) / 2, H * 0.30 + dI);
-      x.globalAlpha = 1;
+      if (!o.senseLogo) {
+        const sil = pinta(encaixa(simbol, W * (bloqueig ? 0.80 : 0.95) * esc), P.CREMA);
+        x.globalAlpha = bloqueig ? 0.92 : 0.22;
+        if (bloqueig) centra(c, sil, H * 0.10 + dB); else x.drawImage(sil, (W - sil.width) / 2, H * 0.30 + dI);
+        x.globalAlpha = 1;
+      }
     } else {  // Crema: corbes
       x.fillStyle = degradat(x, W, H, P.FONS3, P.FONS_B); x.fillRect(0, 0, W, H);
       for (let i = 0; i < 14; i++) {
@@ -579,7 +581,7 @@
         x.lineWidth = 2.5 * u; x.stroke();
       }
       const s = encaixa(simbol, W * (bloqueig ? 0.70 : 0.55) * esc);
-      if (bloqueig) centra(c, s, H * 0.15 + dB);
+      if (o.senseLogo) { /* sense logo */ } else if (bloqueig) centra(c, s, H * 0.15 + dB);
       else { x.globalAlpha = 0.18; x.drawImage(pinta(s, P.CREMA), W * 0.08, H * 0.08 + dI); x.globalAlpha = 1; }
     }
     return c;
@@ -666,6 +668,26 @@
   // ------------------------------------------------------------ pantalla de bloqueig pròpia (MAML) amb rellotge
   // Provat al Mi 10T Lite: component «lockscreen» amb advance/manifest.xml; el rellotge són imatges num_0..9 + num_dot.
   const RELLOTGES = { taronja: 'Taronja', crema: 'Crema', or: 'Or', contorn: 'Contorn', fi: 'Fi' };
+  /** Com és cada rellotge. lletra: gruixuda|normal|fina|classica|maquina; ompli: color|degradat|or|plata|contorn;
+   *  c1, c2 (degradat), sep (':' '·' ''), cp (color del separador, '' = com els números), vora + cv, cd (color de la data) */
+  const RL_CFG = {
+    taronja: { lletra: 'gruixuda', ompli: 'degradat', c1: P.TAR_A, c2: P.TAR_B, sep: ':', cp: '', cd: P.CREMA },
+    crema: { lletra: 'gruixuda', ompli: 'color', c1: P.CREMA, sep: ':', cp: P.TAR_A, cd: P.CREMA },
+    or: { lletra: 'gruixuda', ompli: 'or', sep: ':', cp: '', cd: P.CREMA },
+    contorn: { lletra: 'gruixuda', ompli: 'contorn', c1: P.CREMA, sep: ':', cp: P.TAR_A, cd: P.CREMA },
+    fi: { lletra: 'fina', ompli: 'color', c1: P.CREMA, sep: ':', cp: P.TAR_A, cd: P.CREMA },
+  };
+  const PROPIS_RL = {};
+  function registraRellotge(id, nom, cfg) { RELLOTGES[id] = nom; RL_CFG[id] = cfg; PROPIS_RL[id] = true; }
+  function treuRellotge(id) { delete RELLOTGES[id]; delete RL_CFG[id]; delete PROPIS_RL[id]; }
+  const cfgRellotge = (estil) => RL_CFG[estil] || RL_CFG.taronja;
+  const LLETRES = {
+    gruixuda: (m) => `${m}px XtMontserrat, "Montserrat", sans-serif`,
+    normal: (m) => `500 ${m}px Roboto, "Segoe UI", sans-serif`,
+    fina: (m) => `200 ${m}px "Segoe UI Light", "Roboto Light", "Roboto", sans-serif`,
+    classica: (m) => `700 ${m}px Georgia, "Noto Serif", serif`,
+    maquina: (m) => `500 ${m}px "Roboto Mono", Consolas, "Droid Sans Mono", monospace`,
+  };
   let fontRellotge = null;
   async function carregaFont() {
     if (fontRellotge) return fontRellotge;
@@ -675,29 +697,41 @@
   /** Imatges dels números (1080 d'amplada de referència). r: {estil, escala} -> {dig:[canvas x10], dos:canvas, w, h, wd} */
   async function xifres(r) {
     await carregaFont();
+    const cfg = cfgRellotge(r.estil);
     const mida = Math.round(300 * (r.escala || 1));
-    const fi = r.estil === 'fi';
-    const font = fi ? `200 ${mida}px "Segoe UI Light", "Roboto Light", "Roboto", sans-serif` : `${mida}px XtMontserrat, "Montserrat", sans-serif`;
+    const font = (LLETRES[cfg.lletra] || LLETRES.gruixuda)(mida);
     const mesura = tela(10).getContext('2d'); mesura.font = font;
     const wd = Math.ceil(Math.max(...[...'0123456789'].map((d) => mesura.measureText(d).width))) + Math.round(mida * 0.08);
-    const h = Math.round(mida * 1.12), wc = Math.round(mida * 0.36);
+    const sep = cfg.sep == null ? ':' : cfg.sep;
+    const h = Math.round(mida * 1.12), wc = Math.round(mida * (sep ? 0.36 : 0.14));
+    const gruix = Math.max(3, mida / 45);
     const fa = (t, w) => {
       const c = tela(w, h), x = ctx2(c);
+      if (!t) return c;
       x.font = font; x.textAlign = 'center'; x.textBaseline = 'alphabetic';
       const y = Math.round(mida * 0.98);
-      if (r.estil === 'contorn') {
-        x.lineWidth = Math.max(3, mida / 45); x.strokeStyle = t === ':' ? P.TAR_A : P.CREMA; x.strokeText(t, w / 2, y);
+      const propi = t === sep && cfg.cp;   // el separador amb un color seu
+      if (cfg.ompli === 'contorn') {
+        x.lineWidth = gruix; x.strokeStyle = propi ? cfg.cp : (cfg.c1 || P.CREMA); x.strokeText(t, w / 2, y);
         return c;
       }
-      x.fillStyle = t === ':' && r.estil !== 'or' ? P.TAR_A : '#fff';
-      x.fillText(t, w / 2, y);
-      if (r.estil === 'taronja') return pinta(c, (xx, W2, H2) => degradat(xx, W2, H2, P.TAR_A, P.TAR_B));
-      if (r.estil === 'or') return daurat(c);
-      if (t !== ':') return pinta(c, P.CREMA);
-      return c;
+      x.fillStyle = '#fff'; x.fillText(t, w / 2, y);
+      let o;
+      if (propi) o = pinta(c, cfg.cp);
+      else if (cfg.ompli === 'degradat') o = pinta(c, (xx, W2, H2) => degradat(xx, W2, H2, cfg.c1 || P.TAR_A, cfg.c2 || P.TAR_B));
+      else if (cfg.ompli === 'or') o = daurat(c);
+      else if (cfg.ompli === 'plata') o = pinta(c, (xx, W2, H2) => { const g = xx.createLinearGradient(0, 0, W2 * 0.5, H2); for (const [s, col] of METALLS.plata) g.addColorStop(s, rgb(col)); return g; });
+      else o = pinta(c, cfg.c1 || P.CREMA);
+      if (cfg.vora) {   // vora per fora: el traç gruixut a sota i els números a sobre
+        const v = tela(w, h), xv = ctx2(v);
+        xv.font = font; xv.textAlign = 'center'; xv.lineJoin = 'round'; xv.lineWidth = gruix * 2.4; xv.strokeStyle = cfg.cv || P.TAR_B;
+        xv.strokeText(t, w / 2, y); xv.drawImage(o, 0, 0);
+        return v;
+      }
+      return o;
     };
     const dig = [...'0123456789'].map((d) => fa(d, wd));
-    return { dig, dos: fa(':', wc), wd, wc, h };
+    return { dig, dos: fa(sep, wc), wd, wc, h, cd: cfg.cd || P.CREMA };
   }
   /** Posicions (en coordenades de 1080 d'amplada) */
   function lloc(r, xf) {
@@ -716,10 +750,28 @@
     x.drawImage(xf.dos, L.xd * k, y, xf.wc * k, xf.h * k);
     x.restore();
     if (r.data) {
-      x.fillStyle = P.CREMA; x.font = `${46 * k}px Roboto, "Segoe UI", sans-serif`;
+      x.fillStyle = xf.cd; x.font = `${46 * k}px Roboto, "Segoe UI", sans-serif`;
       x.textAlign = r.alinea === 'esquerra' ? 'left' : r.alinea === 'dreta' ? 'right' : 'center';
       const dx = r.alinea === 'esquerra' ? L.x0 + 10 : r.alinea === 'dreta' ? L.x0 + L.T - 10 : 540;
       x.fillText(ara.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' }), dx * k, y + (xf.h + 60) * k);
+    }
+  }
+  /** Mostra petita d'un estil de rellotge («12:45» i la data) sobre fons pissarra */
+  async function mostraRellotge(canvas, estil, ambData) {
+    const x = ctx2(canvas), W = canvas.width, H = canvas.height;
+    x.fillStyle = degradat(x, W, H, P.FONS_A, P.FONS_B); x.fillRect(0, 0, W, H);
+    const xf = await xifres({ estil, escala: 1 });
+    const T = 4 * xf.wd + xf.wc, alt = ambData ? H * 0.62 : H * 0.8;
+    const k = Math.min(W * 0.9 / T, alt / xf.h);
+    let x0 = (W - T * k) / 2;
+    const y0 = ambData ? H * 0.1 : (H - xf.h * k) / 2;
+    for (const [i, d] of [1, 2, 4, 5].entries()) {
+      x.drawImage(xf.dig[d], x0, y0, xf.wd * k, xf.h * k); x0 += xf.wd * k;
+      if (i === 1) { x.drawImage(xf.dos, x0, y0, xf.wc * k, xf.h * k); x0 += xf.wc * k; }
+    }
+    if (ambData) {
+      x.fillStyle = xf.cd; x.textAlign = 'center'; x.font = `${Math.round(H * 0.11)}px Roboto, "Segoe UI", sans-serif`;
+      x.fillText(new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' }), W / 2, H * 0.88);
     }
   }
   const escX = (s) => String(s).replace(/[<>&"']/g, (m) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' }[m]));
@@ -745,7 +797,7 @@
     <Image src="time/num_dot.png" x="${L.xd}" y="${ya}"/>
     <Image src="time/num.png" srcid="#minute/10" x="${L.xs[2]}" y="${ya}"/>
     <Image src="time/num.png" srcid="#minute%10" x="${L.xs[3]}" y="${ya}"/>
-    <DateTime align="${alin}" color="#F6EFE2" format="EEEE, d MMMM" size="46" visibility="#data" x="${dx}" y="${ya}+${xf.h + 20}"/>
+    <DateTime align="${alin}" color="${xf.cd}" format="EEEE, d MMMM" size="46" visibility="#data" x="${dx}" y="${ya}+${xf.h + 20}"/>
     <Group visibility="#hasnotifications" x="0" y="${ya}+${xf.h + 130}">
       <List align="center" data="icon:bitmap,title:string,content:string,time:string,info:string,subtext:string,key:int" maxHeight="${220 * 3}" name="notification_list" visibility="#hasnotifications" w="#screen_width" x="540" y="0">
         <Item align="center" h="220" w="940" x="540" y="0">
@@ -904,5 +956,6 @@
     return { bytes: z.bytes(), previa: prev, bloqueig: bloqPrevia, icones: Object.keys(icones).length };
   }
 
-  g.Motor = { ESTILS, FONS, LOGOS, P, S, icona, fons, creaTema, carregaImatge, colorApp, registraEstil, treuEstil, registraFons, treuFons, previaCentre, RELLOTGES, dibuixaRellotge };
+  g.Motor = { ESTILS, FONS, LOGOS, P, S, icona, fons, creaTema, carregaImatge, colorApp, registraEstil, treuEstil, registraFons, treuFons, previaCentre, RELLOTGES, dibuixaRellotge,
+    registraRellotge, treuRellotge, mostraRellotge, PROPIS_RL };
 })(window);

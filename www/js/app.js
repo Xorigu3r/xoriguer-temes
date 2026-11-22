@@ -1,7 +1,7 @@
 /* Xoriguer Temes — interfície. */
 'use strict';
 (function () {
-  const VERSIO = '1.4.0';
+  const VERSIO = '1.5.0';
   const URL_VERSIO = 'https://xoriguer.dev/versions/temes/versio.json';
   const $ = (s) => document.querySelector(s);
   const T_ = (s, v) => I18N.t(s, v);
@@ -31,14 +31,14 @@
     estil: desat.estil || 'Color3D', fons: desat.fons || 'LogotipOrTaronja',
     palFons: desat.palFons || 'pissarra', accent: desat.accent || 'taronja',
     model: desat.model || 'M2007J17G',
-    dyInici: desat.dyInici || 0, dyBloq: desat.dyBloq || 0, escala: desat.escala || 1,
+    dyInici: desat.dyInici || 0, dyBloq: desat.dyBloq || 0, escala: desat.escala || 1, senseLogo: !!desat.senseLogo,
     W: 1080, H: 2400, apps: null, info: null, resultat: null,
     cc: Object.assign({ on: '#FFA82E', segon: '#F2650F', off: 'com_ara', icona: '#FFFFFF', barra: '#FFA82E', rellotge: '#F6EFE2' }, desat.cc || {}),
     rl: Object.assign({ estil: 'taronja', posy: 20, alinea: 'centre', escala: 0.8, data: true }, desat.rl || {}),
   };
   function guarda() {
     escriu('xt-opcions', { estil: E.estil, fons: E.fons, palFons: E.palFons, accent: E.accent, model: E.model, cc: E.cc, rl: E.rl,
-      dyInici: E.dyInici, dyBloq: E.dyBloq, escala: E.escala, llengua: desat.llengua || '', senseCarpeta: desat.senseCarpeta });
+      dyInici: E.dyInici, dyBloq: E.dyBloq, escala: E.escala, senseLogo: E.senseLogo, llengua: desat.llengua || '', senseCarpeta: desat.senseCarpeta });
   }
 
 
@@ -57,7 +57,7 @@
   function pintaRellotge() {
     const canvia = (k) => (v) => { E.rl[k] = v; guarda(); pintaPreviaBloq(); };
     const posa = (sel, node) => { const d = $(sel); d.innerHTML = ''; d.append(node); };
-    posa('#rl-estil', segment(Object.entries(M.RELLOTGES), E.rl.estil, canvia('estil')));
+    pintaEstilsRellotge();
     posa('#rl-alinea', segment([['esquerra', 'Esquerra'], ['centre', 'Centre'], ['dreta', 'Dreta']], E.rl.alinea, canvia('alinea')));
     const posy = $('#rl-posy'), esc = $('#rl-escala');
     const etiq = () => { $('#o-rl-posy').textContent = E.rl.posy + '%'; $('#o-rl-escala').textContent = Math.round(E.rl.escala * 100) + '%'; };
@@ -68,6 +68,78 @@
     $('#rl-data').onchange = () => { E.rl.data = $('#rl-data').checked; guarda(); pintaPreviaBloq(); };
     $('#rellotge').onchange = () => { $('#rellotge-opcions').hidden = !$('#rellotge').checked; pintaPreviaBloq(); };
     etiq(); pintaPreviaBloq();
+  }
+
+  // estils de rellotge: els de sèrie i els que fa l'usuari (localStorage xt-rellotges)
+  let rellotgesPropis = llegeix('xt-rellotges', []);   // [{id, nom, cfg}]
+  function registraRellotges() { for (const r of rellotgesPropis) M.registraRellotge(r.id, r.nom, r.cfg); }
+  function pintaEstilsRellotge() {
+    const cont = $('#rl-estil'); cont.innerHTML = '';
+    for (const [id, nom] of Object.entries(M.RELLOTGES)) {
+      if (id === 'R_prova') continue;
+      const propi = M.PROPIS_RL[id];
+      const b = el('div', { class: 'opcio' + (id === E.rl.estil ? ' sel' : ''), role: 'button', tabindex: '0' });
+      const c = el('canvas', { width: '400', height: '150' });
+      b.append(c, el('span', { text: propi ? nom : T_(nom) }));
+      b.onclick = () => { E.rl.estil = id; guarda(); cont.querySelectorAll('.opcio').forEach((o) => o.classList.remove('sel')); b.classList.add('sel'); pintaPreviaBloq(); };
+      if (propi) {
+        const ed = el('button', { class: 'edita', 'aria-label': T_('Edita'), text: '✎' });
+        ed.onclick = (ev) => { ev.stopPropagation(); editaRellotge(rellotgesPropis.find((x) => x.id === id)); };
+        b.append(ed);
+      }
+      cont.append(b);
+      M.mostraRellotge(c, id, false);
+    }
+    const nou = el('button', { class: 'opcio nou' }, [el('b', { text: '+' }), el('span', { text: T_('Nou rellotge') })]);
+    nou.onclick = () => editaRellotge(null);
+    cont.append(nou);
+  }
+  function editaRellotge(existent) {
+    const id = existent ? existent.id : 'R' + Date.now().toString(36);
+    const cfg = existent ? { ...existent.cfg } : { lletra: 'gruixuda', ompli: 'degradat', c1: '#FFA82E', c2: '#F2650F', sep: ':', cp: '', vora: false, cv: '#F2650F', cd: '#F6EFE2' };
+    let nom = existent ? existent.nom : T_('El meu rellotge');
+    const prova = 'R_prova';
+    const previa = el('canvas', { class: 'previa-editor', width: '400', height: '170' });
+    let pend = null;
+    const refresca = () => { clearTimeout(pend); pend = setTimeout(() => { M.registraRellotge(prova, nom, { ...cfg }); M.mostraRellotge(previa, prova, true); }, 60); };
+    const treuProva = () => M.treuRellotge(prova);
+    obreModal(existent ? T_('Edita el rellotge') : T_('Nou estil de rellotge'), (cos) => {
+      const nomInp = el('input', { type: 'text', value: nom, maxlength: '30' }); nomInp.oninput = () => { nom = nomInp.value; };
+      const blocColors = el('div');
+      const pintaColors = () => {
+        blocColors.innerHTML = '';
+        if (['color', 'degradat', 'contorn'].includes(cfg.ompli)) blocColors.append(el('div', { style: 'height:8px' }), mostres(cfg.c1, (c) => { cfg.c1 = c; refresca(); }));
+        if (cfg.ompli === 'degradat') blocColors.append(el('div', { style: 'height:8px' }), mostres(cfg.c2, (c) => { cfg.c2 = c; refresca(); }));
+      };
+      const blocSep = el('div');
+      const pintaSep = () => { blocSep.innerHTML = ''; if (cfg.cp) blocSep.append(el('div', { style: 'height:8px' }), mostres(cfg.cp, (c) => { cfg.cp = c; refresca(); })); };
+      const blocVora = el('div');
+      const pintaVora = () => { blocVora.innerHTML = ''; if (cfg.vora) blocVora.append(mostres(cfg.cv, (c) => { cfg.cv = c; refresca(); })); };
+      const vora = el('input', { type: 'checkbox' }); vora.checked = !!cfg.vora;
+      vora.onchange = () => { cfg.vora = vora.checked; pintaVora(); refresca(); };
+      cos.append(previa,
+        bloc('Nom', nomInp),
+        bloc('Lletra', segment([['gruixuda', 'Gruixuda'], ['normal', 'Normal'], ['fina', 'Fina'], ['classica', 'Clàssica'], ['maquina', 'De màquina']], cfg.lletra, (v) => { cfg.lletra = v; refresca(); })),
+        bloc('Color dels números', segment([['color', 'Un color'], ['degradat', 'Degradat'], ['or', 'Daurat'], ['plata', 'Platejat'], ['contorn', 'Només la vora']], cfg.ompli, (v) => { cfg.ompli = v; pintaColors(); refresca(); }), blocColors),
+        bloc('Separador', segment([[':', 'Dos punts'], ['·', 'Punt'], ['', 'Cap']], cfg.sep, (v) => { cfg.sep = v; refresca(); }), el('div', { style: 'height:8px' }),
+          segment([['', 'Com els números'], ['color', 'Un altre color']], cfg.cp ? 'color' : '', (v) => { cfg.cp = v ? (cfg.cp || '#FFA82E') : ''; pintaSep(); refresca(); }), blocSep),
+        bloc('Vora', el('label', { class: 'check' }, [vora, el('span', { text: T_("Vora d'un altre color al voltant dels números") })]), blocVora),
+        bloc('Color de la data', mostres(cfg.cd, (c) => { cfg.cd = c; refresca(); })));
+      pintaColors(); pintaSep(); pintaVora(); refresca();
+    }, [
+      { text: T_('Desa'), classe: 'princ', fes: () => {
+        treuProva();
+        const reg = { id, nom: nom.trim() || T_('El meu rellotge'), cfg };
+        rellotgesPropis = rellotgesPropis.filter((x) => x.id !== id).concat(reg);
+        escriu('xt-rellotges', rellotgesPropis);
+        M.registraRellotge(id, reg.nom, cfg); E.rl.estil = id; guarda(); tancaModal(); pintaEstilsRellotge(); pintaPreviaBloq();
+      } },
+      ...(existent ? [{ text: T_('Esborra'), fes: () => {
+        rellotgesPropis = rellotgesPropis.filter((x) => x.id !== id); escriu('xt-rellotges', rellotgesPropis);
+        M.treuRellotge(id); treuProva(); if (E.rl.estil === id) E.rl.estil = 'taronja'; guarda(); tancaModal(); pintaEstilsRellotge(); pintaPreviaBloq();
+      } }] : []),
+      { text: T_('Cancel·la'), fes: () => { treuProva(); tancaModal(); } },
+    ]);
   }
 
   // ------------------------------------------------------------ Centre de control
@@ -91,7 +163,7 @@
     $('#centre').onchange = () => { $('#centre-opcions').hidden = !$('#centre').checked; };
     pintaPreviaCentre();
   }
-  const opcionsFons = () => ({ dyInici: E.dyInici, dyBloq: E.dyBloq, escala: E.escala });
+  const opcionsFons = () => ({ dyInici: E.dyInici, dyBloq: E.dyBloq, escala: E.escala, senseLogo: E.senseLogo });
 
   // ------------------------------------------------------------ fotos dels fons propis (IndexedDB)
   const IDB = {
@@ -562,8 +634,12 @@
     I18N.tradueix(document.body);
     // vista prèvia gran del fons triat (inici i bloqueig), damunt dels lliscadors
     const pv = el('div', { id: 'previa-fons', class: 'previes-mini' });
-    $('.lliscadors').before(pv);
+    $('#l-logo').before(pv);
     registraEstils();
+    registraRellotges();
+    if (!M.RELLOTGES[E.rl.estil]) E.rl.estil = 'taronja';
+    $('#amb-logo').checked = !E.senseLogo; $('#logo-opcions').hidden = E.senseLogo;
+    $('#amb-logo').onchange = () => { E.senseLogo = !$('#amb-logo').checked; $('#logo-opcions').hidden = E.senseLogo; guarda(); pintaFons(); };
     await registraFonsPropis();
     if (!M.ESTILS[E.estil]) E.estil = 'Color3D';
     if (!M.FONS[E.fons]) E.fons = 'LogotipOrTaronja';
