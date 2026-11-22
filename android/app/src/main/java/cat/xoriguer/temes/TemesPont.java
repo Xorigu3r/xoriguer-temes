@@ -242,6 +242,22 @@ public class TemesPont extends Plugin {
         }).start();
     }
 
+    /** Posa el fons de la pantalla d'inici (només FLAG_SYSTEM) sense tocar les icones ni la pantalla de bloqueig del tema. */
+    @PluginMethod
+    public void posaFonsInici(PluginCall call) {
+        String dades = call.getString("dades", "");
+        new Thread(() -> {
+            try {
+                byte[] b = Base64.decode(dades, Base64.DEFAULT);
+                android.app.WallpaperManager wm = android.app.WallpaperManager.getInstance(getContext());
+                wm.setStream(new java.io.ByteArrayInputStream(b), null, true, android.app.WallpaperManager.FLAG_SYSTEM);
+                call.resolve(new JSObject().put("ok", true));
+            } catch (Exception e) {
+                call.reject(String.valueOf(e.getMessage()));
+            }
+        }).start();
+    }
+
     @PluginMethod
     public void obreUrl(PluginCall call) {
         try {

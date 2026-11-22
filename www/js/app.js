@@ -37,6 +37,7 @@
     rl: Object.assign({ estil: 'taronja', posy: 20, alinea: 'centre', escala: 0.55, data: true }, desat.rl || {}),
     // fons (2.0): una base i un logo a sobre, per separat
     base: desat.base || '', logo: desat.logo || '', logoBloq: !!desat.logoBloq,
+    baseB: desat.baseB || 'igual', logoB: desat.logoB, pantalla: 'inici',   // fons i logo de la pantalla de bloqueig
     parts: { icones: true, fons: true, bloqueig: true, colors: true },   // no es desa: cada cop comença amb «Tot el tema»
     pas: 1,
   };
@@ -48,11 +49,12 @@
     E.base = v ? v[0] : 'FalcoOr'; E.logo = v ? v[1] : 'LogotipOrTaronja';
     if (E.senseLogo) E.logo = 'cap';
   }
+  if (E.logoB === undefined) E.logoB = E.logoBloq ? E.logo : 'cap';
   // abans el rellotge digital ocupava gairebé tota l'amplada (0,8); ara per defecte la meitat
   if (!desat.rlMida) { if (E.rl.escala === 0.8) E.rl.escala = 0.55; desat.rlMida = 1; }
   function guarda() {
     escriu('xt-opcions', { estil: E.estil, fons: E.fons, palFons: E.palFons, accent: E.accent, model: E.model, cc: E.cc, rl: E.rl,
-      dyInici: E.dyInici, dyBloq: E.dyBloq, escala: E.escala, base: E.base, logo: E.logo, logoBloq: E.logoBloq, llengua: desat.llengua || '', senseCarpeta: desat.senseCarpeta, rlMida: 1 });
+      dyInici: E.dyInici, dyBloq: E.dyBloq, escala: E.escala, base: E.base, logo: E.logo, baseB: E.baseB, logoB: E.logoB, llengua: desat.llengua || '', senseCarpeta: desat.senseCarpeta, rlMida: 1 });
   }
 
 
@@ -275,7 +277,7 @@
   // ------------------------------------------------------------ estils propis i la foto del fons
   let estilsPropis = llegeix('xt-estils', []);   // [{id, nom, cfg}]
   function registraEstils() { for (const e of estilsPropis) M.registraEstil(e.id, e.nom, e.cfg); }
-  let foto = null;   // la foto de l'usuari per al fons (IndexedDB, clau 'foto')
+  let foto = null, fotoB = null;   // les fotos de l'usuari: inici (IndexedDB 'foto') i bloqueig ('foto-bloq')
   async function carregaFoto() {
     try {
       let b = await IDB.agafa('foto');
@@ -287,9 +289,11 @@
       if (b) foto = await imatgeDe(b);
     } catch { /* res */ }
     if (E.base === 'foto' && !foto) E.base = 'FalcoOr';
+    try { const b = await IDB.agafa('foto-bloq'); if (b) fotoB = await imatgeDe(b); } catch { /* res */ }
+    if (E.baseB === 'foto' && !fotoB) E.baseB = 'igual';
   }
   const TRIA = '_tria';
-  function registraTria() { M.registraFons(TRIA, '', { base: E.base, foto, logo: E.logo, logoBloq: E.logoBloq, aura: true }); }
+  function registraTria() { M.registraFons(TRIA, '', { base: E.base, foto, logo: E.logo, baseB: E.baseB, fotoB, logoB: E.logoB, aura: true }); }
 
   // ------------------------------------------------------------ finestra
   function obreModal(titol, omple, botons) {
@@ -406,6 +410,8 @@
     $('#sense-originals').hidden = !$('#l-originals').hidden;
     E.potAplicar = !!(Plat.potAplicar && i.connectat);
     preparaIcones();   // ara ja sabem quines apps té el telèfon
+    // posar el fons d'inici sense tocar la resta del tema només es pot des de l'app del mòbil (WallpaperManager)
+    $('#l-fons-bloq').hidden = !(Plat.potFonsInici && E.potAplicar);
     $('#b-fes').textContent = E.potAplicar ? T_('Aplica al telèfon') : T_('Crea el tema');
     aplicaModel();
   }
@@ -497,48 +503,62 @@
   let fonsGen = 0, fonsTemps = null;
   function pintaFons() { registraTria(); clearTimeout(fonsTemps); fonsTemps = setTimeout(pintaFonsAra, 80); }
   function triaFoto() {
+    const bloq = E.pantalla === 'bloq';
     const inp = $('#tria-foto'); inp.value = '';
     inp.onchange = async () => {
       const f = inp.files && inp.files[0]; if (!f) return;
-      try { foto = await imatgeDe(f); await IDB.posa('foto', f); } catch (e) { alert(String(e.message || e)); return; }
-      E.base = 'foto'; guarda(); pintaFons();
+      try {
+        const im = await imatgeDe(f);
+        await IDB.posa(bloq ? 'foto-bloq' : 'foto', f);
+        if (bloq) { fotoB = im; E.baseB = 'foto'; } else { foto = im; E.base = 'foto'; }
+      } catch (e) { alert(String(e.message || e)); return; }
+      guarda(); pintaFons();
     };
     inp.click();
   }
+  function triaPantalla(v) { E.pantalla = v; pintaFons(); }
   async function pintaFonsAra() {
     const meu = ++fonsGen;
+    const bloq = E.pantalla === 'bloq';
+    const pest = $('#fons-pantalla'); pest.innerHTML = '';
+    pest.append(segment([['inici', "Pantalla d'inici"], ['bloq', 'Pantalla de bloqueig']], E.pantalla, triaPantalla));
+    $('#sub-fons').textContent = T_(bloq ? 'Fons de la pantalla de bloqueig' : "Fons de la pantalla d'inici");
     const cont = $('#bases');
     cont.innerHTML = '';
     const w = 160, h = Math.round(160 * E.H / E.W);
-    const tria = (id) => { E.base = id; guarda(); pintaFons(); };
-    // la foto de l'usuari, la primera
-    const bf = el('div', { class: 'opcio' + (E.base === 'foto' ? ' sel' : ''), role: 'button', tabindex: '0' });
-    if (foto) {
-      const c = el('canvas', { width: String(w), height: String(h) });
-      bf.append(c, el('span', { text: T_('La meva foto') }));
-      const ed = el('button', { class: 'edita', 'aria-label': T_('Canvia la foto'), text: '✎' });
-      ed.onclick = (ev) => { ev.stopPropagation(); triaFoto(); };
-      bf.append(ed);
-      bf.onclick = () => tria('foto');
-      M.registraFons('_m_foto', '', { base: 'foto', foto, logo: E.logo, aura: true });
-      M.fons('_m_foto', w, h, false, opcionsFons()).then((f) => { if (meu === fonsGen) c.getContext('2d').drawImage(f, 0, 0); });
-    } else {
-      bf.append(el('div', { class: 'foto-buida', text: '+' }), el('span', { text: T_('La meva foto') }));
-      bf.onclick = triaFoto;
-    }
-    cont.append(bf);
-    for (const [id, nom] of Object.entries(NOMS_BASE)) {
-      const b = el('div', { class: 'opcio' + (id === E.base ? ' sel' : ''), role: 'button', tabindex: '0' });
+    const actual = bloq ? E.baseB : E.base, logo = bloq ? E.logoB : E.logo, fotoAra = bloq ? fotoB : foto;
+    const tria = (id) => { if (bloq) E.baseB = id; else E.base = id; guarda(); pintaFons(); };
+    const mostra = (c, cfg) => {
+      const id = '_m_' + Math.random().toString(36).slice(2);
+      M.registraFons(id, '', { aura: true, ...cfg });
+      M.fons(id, w, h, bloq, opcionsFons()).then((f) => { M.treuFons(id); if (meu === fonsGen) c.getContext('2d').drawImage(f, 0, 0); });
+    };
+    const rajola = (id, nom, cfg) => {
+      const b = el('div', { class: 'opcio' + (id === actual ? ' sel' : ''), role: 'button', tabindex: '0' });
       const c = el('canvas', { width: String(w), height: String(h) });
       b.append(c, el('span', { text: T_(nom) }));
       b.onclick = () => tria(id);
-      cont.append(b);
-      M.registraFons('_m_' + id, '', { base: id, logo: E.logo, aura: true });
-      M.fons('_m_' + id, w, h, false, opcionsFons()).then((f) => { if (meu === fonsGen) c.getContext('2d').drawImage(f, 0, 0); });
+      cont.append(b); mostra(c, cfg);
+      return b;
+    };
+    // a la pantalla de bloqueig, primer «el mateix que a l'inici»
+    if (bloq) rajola('igual', "El mateix que a l'inici", { base: E.base, foto, logo });
+    // la foto de l'usuari
+    if (fotoAra) {
+      const bf = rajola('foto', 'La meva foto', { base: 'foto', foto: fotoAra, logo });
+      const ed = el('button', { class: 'edita', 'aria-label': T_('Canvia la foto'), text: '✎' });
+      ed.onclick = (ev) => { ev.stopPropagation(); triaFoto(); };
+      bf.append(ed);
+    } else {
+      const bf = el('div', { class: 'opcio', role: 'button', tabindex: '0' });
+      bf.append(el('div', { class: 'foto-buida', text: '+' }), el('span', { text: T_('La meva foto') }));
+      bf.onclick = triaFoto;
+      cont.append(bf);
     }
+    for (const [id, nom] of Object.entries(NOMS_BASE)) rajola(id, nom, { base: id, logo });
     const lg = $('#logos'); lg.innerHTML = '';
-    lg.append(segment(NOMS_LOGO, E.logo, (v) => { E.logo = v; guarda(); $('#logo-opcions').hidden = v === 'cap'; pintaFons(); }));
-    $('#logo-opcions').hidden = E.logo === 'cap';
+    lg.append(segment(NOMS_LOGO, logo, (v) => { if (bloq) E.logoB = v; else E.logo = v; guarda(); pintaFons(); }));
+    $('#logo-opcions').hidden = E.logo === 'cap' && E.logoB === 'cap';
     pintaPreviaFons();
   }
   let previaGen = 0;
@@ -552,9 +572,11 @@
     const [a, b] = await Promise.all([M.fons(TRIA, w, h, false, opcionsFons()), M.fons(TRIA, w, h, true, opcionsFons())]);
     if (meu !== previaGen) return;
     cont.innerHTML = '';
-    for (const [f, t] of [[a, 'Inici'], [b, 'Bloqueig']]) {
+    for (const [f, t, v] of [[a, 'Inici', 'inici'], [b, 'Bloqueig', 'bloq']]) {
       const c = el('canvas', { width: String(w), height: String(h) }); c.getContext('2d').drawImage(f, 0, 0);
-      cont.append(el('figure', {}, [c, el('figcaption', { text: T_(t) })]));
+      const fig = el('figure', { class: E.pantalla === v ? 'sel' : '' }, [c, el('figcaption', { text: T_(t) })]);
+      fig.onclick = () => { if (E.pantalla !== v) triaPantalla(v); };
+      cont.append(fig);
     }
   }
   function lligaLliscadors() {
@@ -631,7 +653,8 @@
   // esborren el fons d'inici (provat el 22/11/2026), per això no n'hi ha.
   function llegeixParts() {
     const a = (document.querySelector('input[name=abast]:checked') || {}).value || 'tot';
-    E.parts = { icones: a === 'tot' || a === 'icones', fons: a === 'tot', bloqueig: a === 'tot' || a === 'bloqueig', colors: a === 'tot' };
+    E.abast = a;
+    E.parts = { icones: a === 'tot' || a === 'icones', fons: a === 'tot' || a === 'fons-bloq', bloqueig: a === 'tot' || a === 'bloqueig' || a === 'fons-bloq', colors: a === 'tot' };
   }
   async function crea() {
     $('#resultat').hidden = true; $('#missatge').textContent = ''; $('#ajuda-aplica').hidden = true;
@@ -685,6 +708,8 @@
   async function aplica() {
     $('#missatge').textContent = T_('Aplicant el tema…'); $('#ajuda-aplica').hidden = true;
     try {
+      // fons + bloqueig: primer el fons d'inici (Android) i després la pantalla de bloqueig amb el tema (4100)
+      if (E.abast === 'fons-bloq' && E.resultat.fonsInici) await Plat.posaFonsInici(E.resultat.fonsInici);
       const r = await Plat.aplica(E.resultat.bytes, E.resultat.nom, E.resultat.flags);
       if (r.tria) { $('#ajuda-aplica').hidden = false; $('#missatge').textContent = ''; }
       else $('#missatge').textContent = r.ok ? T_('Fet! El tema ja és al telèfon.') : T_("No s'ha pogut aplicar: {e}", { e: r.missatge || '' });
@@ -718,8 +743,6 @@
     await carregaFoto();
     if (!M.ESTILS[E.estil]) E.estil = 'Color3D';
     registraTria();
-    $('#logo-bloq').checked = E.logoBloq;
-    $('#logo-bloq').onchange = () => { E.logoBloq = $('#logo-bloq').checked; guarda(); pintaFons(); };
     M.posaMagatzem({ agafa: (k) => IDB.agafa(k, 'icones'), posa: (k, v) => IDB.posa(k, v, 'icones') });
     IDB.netejaIcones(M.VER_IC).catch(() => {});
     $('#originals').addEventListener('change', preparaIcones); $('#plenes').addEventListener('change', preparaIcones);

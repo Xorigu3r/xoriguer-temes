@@ -53,6 +53,12 @@
       return { ok: false, missatge: 'web' };
     },
     potAplicar: tipus !== 'web',
+    /** Fons de la pantalla d'inici sense tocar la resta del tema (Android: WallpaperManager, TemesPont.posaFonsInici) */
+    potFonsInici: !!cap,
+    async posaFonsInici(bytes) {
+      if (!cap) throw new Error('web');
+      return cap.posaFonsInici({ dades: aBase64(bytes) });
+    },
     descarregaAdb: () => (esc ? esc.descarregaAdb() : null),
     /** Text d'una adreça de xoriguer.dev (actualitzacions) */
     async busca(url) {

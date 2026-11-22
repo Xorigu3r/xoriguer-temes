@@ -153,6 +153,11 @@ details.mes summary { cursor: pointer; color: var(--taronja); font-size: .9rem; 
 .check.separa { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--linia); }
 button.gran { width: 100%; margin-top: 14px; font-size: 1.05rem; padding: 14px; }
 #previa-fons canvas { width: 104px; }
+#previa-fons figure { cursor: pointer; }
+#previa-fons figure canvas { border: 2px solid transparent; }
+#previa-fons figure.sel canvas { border-color: var(--taronja); }
+.pestanyes .segment { justify-content: center; }
+.pestanyes .segment button { flex: 1; max-width: 220px; }
 .previa-centre.petita { width: min(220px, 58%); margin-top: 16px; }
 #rl-estil { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
 @media (min-width: 760px) { #previa-fons canvas { width: 150px; } }

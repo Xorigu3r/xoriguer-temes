@@ -44,11 +44,11 @@
     <section class="pas" data-pas="2" hidden>
       <h2>Fons de pantalla</h2>
       <div id="previa-fons" class="previes-mini"></div>
-      <div class="sub">Fons</div>
+      <div id="fons-pantalla" class="pestanyes"></div>
+      <div class="sub" id="sub-fons">Fons</div>
       <div id="bases" class="graella fons"></div>
       <div class="sub">Logo a sobre</div>
       <div id="logos"></div>
-      <label class="check"><input type="checkbox" id="logo-bloq"> Posa el logo també a la pantalla de bloqueig</label>
       <details class="mes" id="logo-opcions"><summary>Posició i mida del logo</summary>
         <div class="lliscadors">
           <label class="lliscador"><span>Inici</span><input type="range" id="dy-inici" min="-30" max="30" step="1" value="0"><output id="o-inici"></output></label>
@@ -123,6 +123,7 @@
       <div class="sub">Què vols canviar al telèfon?</div>
       <div class="parts">
         <label class="check"><input type="radio" name="abast" value="tot" checked> Tot el tema (icones, fons, pantalla de bloqueig i colors)</label>
+        <label class="check" id="l-fons-bloq" hidden><input type="radio" name="abast" value="fons-bloq"> Els fons de pantalla i la pantalla de bloqueig (conserva les icones que tens)</label>
         <label class="check"><input type="radio" name="abast" value="icones"> Només les icones</label>
         <label class="check"><input type="radio" name="abast" value="bloqueig"> Només la pantalla de bloqueig (el rellotge i el seu fons)</label>
       </div>

@@ -607,17 +607,20 @@
     const c = tela(W, H), x = ctx2(c), u = W / 1080;
     const pers = PERSONALS[estil];
     if (pers) {
-      if (BASES.includes(pers.base)) {   // un fons de sèrie, sense el seu logo
-        x.drawImage(await fons(pers.base, W, H, bloqueig, { ...o, senseLogo: true }), 0, 0);
-      } else if (pers.base === 'foto' && pers.foto) {   // la foto omple la pantalla (retallada al centre)
-        const f = pers.foto, r = Math.max(W / f.width, H / f.height);
+      // la pantalla de bloqueig pot tenir el seu fons (baseB/fotoB, 'igual' = el de l'inici) i el seu logo (logoB)
+      const propi = bloqueig && pers.baseB && pers.baseB !== 'igual';
+      const base = propi ? pers.baseB : pers.base, foto = propi ? pers.fotoB : pers.foto;
+      const logo = bloqueig && pers.logoB !== undefined ? pers.logoB : (bloqueig && pers.logoBloq === false ? 'cap' : pers.logo);
+      if (BASES.includes(base)) {   // un fons de sèrie, sense el seu logo
+        x.drawImage(await fons(base, W, H, bloqueig, { ...o, senseLogo: true }), 0, 0);
+      } else if (base === 'foto' && foto) {   // la foto omple la pantalla (retallada al centre)
+        const r = Math.max(W / foto.width, H / foto.height);
         x.imageSmoothingQuality = 'high';
-        x.drawImage(f, (W - f.width * r) / 2, (H - f.height * r) / 2, f.width * r, f.height * r);
+        x.drawImage(foto, (W - foto.width * r) / 2, (H - foto.height * r) / 2, foto.width * r, foto.height * r);
       } else {
         x.fillStyle = degradat(x, W, H, pers.c1 || P.FONS_A, pers.c2 || P.FONS_B); x.fillRect(0, 0, W, H);
       }
-      const ambLogo = !o.senseLogo && pers.logo && pers.logo !== 'cap' && !(bloqueig && pers.logoBloq === false);
-      if (ambLogo) await dibuixaLogo(x, pers.logo, W, H, bloqueig, o, pers.aura !== false);
+      if (!o.senseLogo && logo && logo !== 'cap') await dibuixaLogo(x, logo, W, H, bloqueig, o, pers.aura !== false);
       return c;
     }
     if (estil.startsWith('Falco') || estil.startsWith('Logotip')) {
@@ -1138,6 +1141,8 @@ ${rellotgeXml}
     const n = ['icones', 'fons', 'bloqueig', 'colors'].filter((k) => p[k]);
     if (n.length === 1 && p.icones) return 8;
     if (n.length === 1 && p.bloqueig) return 4100;
+    // fons + bloqueig (conserva les icones): el bloqueig amb el tema (4100) i el fons d'inici amb WallpaperManager (TemesPont)
+    if (n.length === 2 && p.fons && p.bloqueig) return 4100;
     return -1;
   }
 
@@ -1202,7 +1207,8 @@ ${rellotgeXml}
     z.afegeix('preview/preview_launcher_0.jpg', await aBytes(mitja(prev), 'image/jpeg', 0.85));
     z.afegeix('preview/preview_lockscreen_0.jpg', await aBytes(mitja(bloqPrevia), 'image/jpeg', 0.85));
     prog(1, 'fet');
-    return { bytes: z.bytes(), previa: prev, bloqueig: bloqPrevia, icones: Object.keys(icones).length };
+    const fonsInici = parts.fons ? await aBytes(inici, 'image/jpeg', 0.92) : null;   // per posar-lo a part (WallpaperManager)
+    return { bytes: z.bytes(), previa: prev, bloqueig: bloqPrevia, icones: Object.keys(icones).length, fonsInici };
   }
 
   g.Motor = { ESTILS, FONS, LOGOS, BASES, flagsParts, preparaIcones, posaMagatzem, VER_IC, P, S, icona, fons, creaTema, carregaImatge, colorApp, registraEstil, treuEstil, registraFons, treuFons, previaCentre, RELLOTGES, dibuixaRellotge,
