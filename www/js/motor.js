@@ -1139,6 +1139,23 @@ ${rellotgeXml}
    * icons 8 · lockstyle 4096 + fons de bloqueig 4 = 4100 (sense el 4, MIUI esborra el fons de bloqueig). -1 = tot el tema.
    * NO: barreges amb el bit 1 (framework, camí del tema sencer): esborren el fons d'inici encara que no hi sigui.
    */
+  /**
+   * Apps de MIUI que porten la imatge de Configuració (totes fan servir els fons «miuix»; analitzat amb aapt2 al Mi 10T Lite):
+   * paquet -> els seus colors de fons negres en mode fosc. Bienestar digital és de Google: no es pot.
+   */
+  const AMB_IMATGE = {
+    'com.android.settings': {},
+    'com.android.phone': {},          // Targetes SIM i xarxes
+    'com.xiaomi.account': {},         // Compte Mi
+    'com.miui.miservice': { topic_bg: 'f' },   // Serveis i comentaris
+    'com.xiaomi.discover': { bg_main_color: 'f', bg_update_apps_color: 'f', card_item_background: 'f', card_item_background_normal: 'f' },   // Actualitzador d'apps
+    'com.miui.home': { allapps_setting_bg_color: 'f' },   // ajustos de la pantalla d'inici
+  };
+  const FONS_MIUIX = ['miuix_appcompat_settings_window_bg_dark', 'miuix_appcompat_window_bg_dark', 'miuix_appcompat_window_bg_secondary_dark'];
+  // les llistes fan servir miuix_preference_list_item_bg_color_dark → @color/miuix_appcompat_black (negre pur): només a nightmode/
+  const NEGRE_LLISTES = { miuix_appcompat_black: 'f', miuix_preference_list_item_bg_color_dark: 'f' };
+  const ALFA_LLISTES = '8c';
+
   /** Fons de Configuració: la foto omple la pantalla i s'enfosqueix amb el color de fons (foscor 0..1) perquè el text es llegeixi */
   function imatgeConfiguracio(foto, W, H, foscor, color) {
     const c = tela(W, H), x = ctx2(c), r = Math.max(W / foto.width, H / foto.height);
@@ -1192,20 +1209,30 @@ ${rellotgeXml}
         quadrat[rol] = await aBytes(q);
       }
       // imatge de fons a Configuració (totes les pantalles: Wi‑Fi, Bluetooth...): substitueix el fons de la finestra
-      const imgConf = o.config && o.config.foto ? await aBytes(imatgeConfiguracio(o.config.foto, o.W, o.H, o.config.foscor, pal.fons)) : null;
+      const imgConf = o.config && o.config.foto ? await aBytes(imatgeConfiguracio(o.config.foto, Math.round(o.W / 2), Math.round(o.H / 2), o.config.foscor, pal.fons)) : null;   // mitja resolució: va 18 vegades al tema
       for (const [paq, d] of Object.entries(g.SISTEMA)) {
         const zc = new g.Zip();
         const tv = themeValues(d.c, pal);
         // amb imatge a Configuració, en mode fosc els fons i les llistes són semitransparents perquè s'hi vegi la imatge.
         // Les llistes fan servir miuix_preference_list_item_bg_color_dark → @color/miuix_appcompat_black (negre pur):
         // cal canviar el negre (només a nightmode/, on no és color de text).
-        const tvNit = imgConf && paq === 'com.android.settings'
-          ? themeValues(d.c, pal, { alfaFons: '8c', extra: { miuix_appcompat_black: 'f', miuix_preference_list_item_bg_color_dark: 'f' } }) : tv;
+        const ambImatge = imgConf && AMB_IMATGE[paq];
+        const tvNit = ambImatge ? themeValues(d.c, pal, { alfaFons: ALFA_LLISTES, extra: { ...NEGRE_LLISTES, ...AMB_IMATGE[paq] } }) : tv;
         for (const pre of ['', 'nightmode/']) {
           zc.afegeix(pre + 'theme_values.xml', pre ? tvNit : tv);
-          for (const [nom, rol] of Object.entries(d.d)) zc.afegeix(`${pre}res/drawable-xxhdpi/${nom}.png`, imgConf && paq === 'com.android.settings' && rol === 'f' ? imgConf : quadrat[rol]);
+          for (const [nom, rol] of Object.entries(d.d)) zc.afegeix(`${pre}res/drawable-xxhdpi/${nom}.png`, ambImatge && rol === 'f' && pre ? imgConf : quadrat[rol]);   // en mode fosc MIUI només mira nightmode/
         }
         z.afegeix(paq, zc.bytes());
+      }
+      // la resta d'apps de MIUI amb la mateixa imatge (no són a SISTEMA): només el fons de la finestra i les llistes en mode fosc
+      if (imgConf) {
+        for (const [paq, extra] of Object.entries(AMB_IMATGE)) {
+          if (g.SISTEMA[paq]) continue;
+          const zc = new g.Zip();
+          zc.afegeix('nightmode/theme_values.xml', themeValues({}, pal, { alfaFons: ALFA_LLISTES, extra: { ...NEGRE_LLISTES, ...extra } }));
+          for (const nom of FONS_MIUIX) zc.afegeix(`nightmode/res/drawable-xxhdpi/${nom}.png`, imgConf);
+          z.afegeix(paq, zc.bytes());
+        }
       }
     }
     if (parts.colors && o.centre) {   // Centre de control de MIUI 14 (miui.systemui.plugin): provat al Mi 10T Lite
