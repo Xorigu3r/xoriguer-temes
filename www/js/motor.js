@@ -687,12 +687,14 @@
   }
 
   // ------------------------------------------------------------ sistema
-  function themeValues(colors, pal) {
+  /** o.alfaFons ('80'...): els fons (rol f) semitransparents; o.extra: més colors amb rol (p. ex. el negre de les llistes) */
+  function themeValues(colors, pal, o) {
+    o = o || {};
     const v = { f: pal.fons, t: pal.targeta, a: pal.accent };
     const l = ['<?xml version="1.0" encoding="utf-8"?>', '<MIUI_Theme_Values>'];
-    for (const [n, r] of Object.entries(colors)) {
-      const c = v[r] || r;
-      l.push(`    <color name="${n}">#ff${c.replace('#', '').slice(-6).toLowerCase()}</color>`);
+    for (const [n, r] of Object.entries({ ...colors, ...(o.extra || {}) })) {
+      const c = v[r] || r, alfa = r === 'f' && o.alfaFons ? o.alfaFons : 'ff';
+      l.push(`    <color name="${n}">#${alfa}${c.replace('#', '').slice(-6).toLowerCase()}</color>`);
     }
     l.push('</MIUI_Theme_Values>', '');
     return l.join('\n');
@@ -1194,8 +1196,13 @@ ${rellotgeXml}
       for (const [paq, d] of Object.entries(g.SISTEMA)) {
         const zc = new g.Zip();
         const tv = themeValues(d.c, pal);
+        // amb imatge a Configuració, en mode fosc els fons i les llistes són semitransparents perquè s'hi vegi la imatge.
+        // Les llistes fan servir miuix_preference_list_item_bg_color_dark → @color/miuix_appcompat_black (negre pur):
+        // cal canviar el negre (només a nightmode/, on no és color de text).
+        const tvNit = imgConf && paq === 'com.android.settings'
+          ? themeValues(d.c, pal, { alfaFons: '8c', extra: { miuix_appcompat_black: 'f', miuix_preference_list_item_bg_color_dark: 'f' } }) : tv;
         for (const pre of ['', 'nightmode/']) {
-          zc.afegeix(pre + 'theme_values.xml', tv);
+          zc.afegeix(pre + 'theme_values.xml', pre ? tvNit : tv);
           for (const [nom, rol] of Object.entries(d.d)) zc.afegeix(`${pre}res/drawable-xxhdpi/${nom}.png`, imgConf && paq === 'com.android.settings' && rol === 'f' ? imgConf : quadrat[rol]);
         }
         z.afegeix(paq, zc.bytes());
