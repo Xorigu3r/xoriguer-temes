@@ -1160,8 +1160,7 @@ ${rellotgeXml}
     const icones = {};
     const parts = Object.assign({ icones: true, fons: true, bloqueig: true, colors: true }, o.parts || {});
     // plenes: a les icones amb marc, la icona original de cada app (si la tenim) omple l'interior
-    // iconesPropies: el component «icons» del tema que l'usuari ja té al telèfon (Windows, adb): no se'n dibuixa cap
-    const llista = parts.icones && !o.iconesPropies ? iconesAFer(o) : [];
+    const llista = parts.icones ? iconesAFer(o) : [];
     for (let i = 0; i < llista.length; i++) {   // les ja preparades surten de la memòria a l'instant
       const a = llista[i];
       icones[a.paquet] = await iconaBytes(o.estil, a.paquet, a.original, a.plena);
@@ -1182,7 +1181,7 @@ ${rellotgeXml}
 
     const z = new g.Zip();
     z.afegeix('description.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<theme>\n    <title>${esc(o.nom)}</title>\n    <designer>Xoriguer</designer>\n    <author>Xoriguer Temes</author>\n    <version>1.0</version>\n    <uiVersion>14</uiVersion>\n    <description>${esc(o.descripcio || '')}</description>\n</theme>\n`);
-    if (parts.icones) z.afegeix('icons', o.iconesPropies || zi.bytes());
+    if (parts.icones) z.afegeix('icons', zi.bytes());
     if (parts.colors && o.sistema && g.SISTEMA) {
       const pal = o.paleta;
       const quadrat = {};

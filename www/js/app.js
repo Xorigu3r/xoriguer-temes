@@ -415,8 +415,6 @@
     preparaIcones();   // ara ja sabem quines apps té el telèfon
     // posar el fons d'inici sense tocar la resta del tema només es pot des de l'app del mòbil (WallpaperManager)
     $('#l-fons-bloq').hidden = !(Plat.potFonsInici && E.potAplicar);
-    // conservar les icones del tema actual: només des de Windows (adb pot llegir la carpeta del gestor de temes)
-    $('#l-cons-icones').hidden = !(Plat.potIconesActuals && E.potAplicar);
     $('#b-fes').textContent = E.potAplicar ? T_('Aplica al telèfon') : T_('Crea el tema');
     aplicaModel();
   }
@@ -727,16 +725,10 @@
     const est = M.ESTILS[E.estil] || M.ESTILS.Color3D;
     registraTria();
     try {
-      let iconesPropies = null;
-      if (E.parts.icones && !$('#l-cons-icones').hidden && $('#cons-icones').checked) {
-        $('#missatge').textContent = T_('Copiant les icones que tens al telèfon…');
-        iconesPropies = await Plat.iconesActuals();
-        $('#missatge').textContent = '';
-      }
       const fotoConfig = $('#sistema').checked ? await imatgeConfig() : null;
       const r = await M.creaTema({
         estil: M.ESTILS[E.estil] ? E.estil : 'Color3D', fons: TRIA, W: E.W, H: E.H,
-        nom: $('#nom').value || 'Xoriguer', fonsOpcions: opcionsFons(), parts: { ...E.parts }, iconesPropies,
+        nom: $('#nom').value || 'Xoriguer', fonsOpcions: opcionsFons(), parts: { ...E.parts },
         config: fotoConfig ? { foto: fotoConfig, foscor: E.configFoscor } : null,
         descripcio: `Xoriguer Temes · ${est.personal ? est.nom : T_(est.nom)}`,
         apps, originals: !$('#l-originals').hidden && $('#originals').checked,
