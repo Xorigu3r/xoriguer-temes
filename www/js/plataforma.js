@@ -39,16 +39,17 @@
       return { ok: true };
     },
     /** Retorna {ok, tria (cal triar el fitxer al selector), missatge} */
-    async aplica(bytes, nom) {
+    async aplica(bytes, nom, flags) {
+      if (flags == null) flags = -1;   // -1 = tot el tema; si no, només aquestes parts (Motor.flagsParts)
       if (cap) {
         const dades = aBase64(bytes);
         // directe: el gestor de temes el llegeix com a imatge i l'aplica sol (TemesPont.aplicaDirecte)
-        try { return await cap.aplicaDirecte({ dades }); } catch (e) { console.warn('aplicaDirecte:', e); }
+        try { return await cap.aplicaDirecte({ dades, flags }); } catch (e) { console.warn('aplicaDirecte:', e); }
         // reserva: Descàrregues + selector del gestor de temes
         const d = await cap.desa({ nom, dades });
-        return cap.aplica({ cami: d.cami });
+        return cap.aplica({ cami: d.cami, flags });
       }
-      if (esc) return esc.aplica({ nom, dades: bytes });
+      if (esc) return esc.aplica({ nom, dades: bytes, flags });
       return { ok: false, missatge: 'web' };
     },
     potAplicar: tipus !== 'web',

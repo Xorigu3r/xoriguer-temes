@@ -35,12 +35,24 @@
     W: 1080, H: 2400, apps: null, info: null, resultat: null,
     cc: Object.assign({ on: '#FFA82E', segon: '#F2650F', off: 'com_ara', icona: '#FFFFFF', barra: '#FFA82E', rellotge: '#F6EFE2' }, desat.cc || {}),
     rl: Object.assign({ estil: 'taronja', posy: 20, alinea: 'centre', escala: 0.55, data: true }, desat.rl || {}),
+    // fons (2.0): una base i un logo a sobre, per separat
+    base: desat.base || '', logo: desat.logo || '', logoBloq: !!desat.logoBloq,
+    parts: Object.assign({ icones: true, fons: true, bloqueig: true, colors: true }, desat.parts || {}),
+    pas: 1,
   };
+  // de les versions 1.x: el fons era una sola peça (fons + logo); el convertim a base + logo
+  const VELLS = { Falco: ['Falco', 'Falco'], FalcoOr: ['FalcoOr', 'FalcoOr'], Logotip: ['Falco', 'Logotip'], LogotipOr: ['FalcoOr', 'LogotipOr'],
+    LogotipOrTaronja: ['FalcoOr', 'LogotipOrTaronja'], Pissarra: ['Pissarra', 'cap'], Taronja: ['Taronja', 'cap'], Crema: ['Crema', 'cap'] };
+  if (!E.base) {
+    const v = VELLS[E.fons];
+    E.base = v ? v[0] : 'FalcoOr'; E.logo = v ? v[1] : 'LogotipOrTaronja';
+    if (E.senseLogo) E.logo = 'cap';
+  }
   // abans el rellotge digital ocupava gairebé tota l'amplada (0,8); ara per defecte la meitat
   if (!desat.rlMida) { if (E.rl.escala === 0.8) E.rl.escala = 0.55; desat.rlMida = 1; }
   function guarda() {
     escriu('xt-opcions', { estil: E.estil, fons: E.fons, palFons: E.palFons, accent: E.accent, model: E.model, cc: E.cc, rl: E.rl,
-      dyInici: E.dyInici, dyBloq: E.dyBloq, escala: E.escala, senseLogo: E.senseLogo, llengua: desat.llengua || '', senseCarpeta: desat.senseCarpeta, rlMida: 1 });
+      dyInici: E.dyInici, dyBloq: E.dyBloq, escala: E.escala, base: E.base, logo: E.logo, logoBloq: E.logoBloq, parts: E.parts, llengua: desat.llengua || '', senseCarpeta: desat.senseCarpeta, rlMida: 1 });
   }
 
 
@@ -51,7 +63,7 @@
     const meu = ++blGen;
     const c = $('#previa-bloq');
     c.height = Math.round(c.width * E.H / E.W);
-    const f = await M.fons(M.FONS[E.fons] ? E.fons : 'LogotipOrTaronja', c.width, c.height, true, opcionsFons());
+    const f = await M.fons(TRIA, c.width, c.height, true, opcionsFons());
     if (meu !== blGen) return;
     const x = c.getContext('2d'); x.drawImage(f, 0, 0);
     if (!$('#rellotge').checked) return;
@@ -200,7 +212,7 @@
   let ccGen = 0;
   async function pintaPreviaCentre() {
     const meu = ++ccGen;
-    const f = await M.fons(M.FONS[E.fons] ? E.fons : 'LogotipOrTaronja', 216, Math.round(216 * E.H / E.W), false, opcionsFons());
+    const f = await M.fons(TRIA, 216, Math.round(216 * E.H / E.W), false, opcionsFons());
     if (meu !== ccGen) return;
     const c = $('#previa-centre');
     c.getContext('2d').drawImage(M.previaCentre(E.cc, c.width, c.height, f), 0, 0);
@@ -215,9 +227,10 @@
     posa('#cc-barra', mostres(E.cc.barra, canvia('barra')));
     posa('#cc-rellotge', mostres(E.cc.rellotge, canvia('rellotge')));
     $('#centre').onchange = () => { $('#centre-opcions').hidden = !$('#centre').checked; };
+    $('#sistema').onchange = () => { $('#sistema-opcions').hidden = !$('#sistema').checked; };
     pintaPreviaCentre();
   }
-  const opcionsFons = () => ({ dyInici: E.dyInici, dyBloq: E.dyBloq, escala: E.escala, senseLogo: E.senseLogo });
+  const opcionsFons = () => ({ dyInici: E.dyInici, dyBloq: E.dyBloq, escala: E.escala });
 
   // ------------------------------------------------------------ fotos dels fons propis (IndexedDB)
   const IDB = {
@@ -241,17 +254,24 @@
   };
   const imatgeDe = (blob) => new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = URL.createObjectURL(blob); });
 
-  // ------------------------------------------------------------ estils i fons propis
+  // ------------------------------------------------------------ estils propis i la foto del fons
   let estilsPropis = llegeix('xt-estils', []);   // [{id, nom, cfg}]
-  let fonsPropis = llegeix('xt-fons', []);        // [{id, nom, cfg}] (la foto és a IndexedDB amb la mateixa id)
   function registraEstils() { for (const e of estilsPropis) M.registraEstil(e.id, e.nom, e.cfg); }
-  async function registraFonsPropis() {
-    for (const f of fonsPropis) {
-      let foto = null;
-      if (f.cfg.base === 'foto') { try { const b = await IDB.agafa(f.id); if (b) foto = await imatgeDe(b); } catch { /* res */ } }
-      M.registraFons(f.id, f.nom, { ...f.cfg, foto });
-    }
+  let foto = null;   // la foto de l'usuari per al fons (IndexedDB, clau 'foto')
+  async function carregaFoto() {
+    try {
+      let b = await IDB.agafa('foto');
+      if (!b) {   // de les versions 1.x: el darrer fons propi amb foto
+        const vells = llegeix('xt-fons', []).filter((f) => f.cfg && f.cfg.base === 'foto');
+        for (const f of vells.reverse()) { b = await IDB.agafa(f.id); if (b) { await IDB.posa('foto', b); break; } }
+        if (b && vells.some((f) => f.id === E.fons)) { E.base = 'foto'; const v = vells.find((f) => f.id === E.fons); if (v.cfg.logo) E.logo = v.cfg.logo; }
+      }
+      if (b) foto = await imatgeDe(b);
+    } catch { /* res */ }
+    if (E.base === 'foto' && !foto) E.base = 'FalcoOr';
   }
+  const TRIA = '_tria';
+  function registraTria() { M.registraFons(TRIA, '', { base: E.base, foto, logo: E.logo, logoBloq: E.logoBloq, aura: true }); }
 
   // ------------------------------------------------------------ finestra
   function obreModal(titol, omple, botons) {
@@ -314,6 +334,7 @@
     $('#nom-model').textContent = nomModel();
     $('#amp').value = E.W; $('#alc').value = E.H;
     $('#amp').disabled = $('#alc').disabled = E.model !== 'altre';
+    $('#resolucio').hidden = E.model !== 'altre';
     pintaFons();
   }
   function triaModel() {
@@ -364,7 +385,9 @@
     }
     $('#l-originals').hidden = !(E.apps && E.apps.some((a) => a.icona));
     $('#l-plenes').hidden = $('#l-originals').hidden;
-    $('#b-aplica').hidden = !(Plat.potAplicar && i.connectat);
+    $('#sense-originals').hidden = !$('#l-originals').hidden;
+    E.potAplicar = !!(Plat.potAplicar && i.connectat);
+    $('#b-fes').textContent = E.potAplicar ? T_('Aplica al telèfon') : T_('Crea el tema');
     aplicaModel();
   }
 
@@ -383,8 +406,8 @@
       const c = el('canvas', { width: '400', height: '110' });
       b.append(c, el('span', { text: e.personal ? e.nom : T_(e.nom) }));
       b.onclick = () => {
-        E.estil = id; if (!e.personal) E.fons = e.fons; guarda();
-        cont.querySelectorAll('.opcio').forEach((o) => o.classList.remove('sel')); b.classList.add('sel'); pintaFons();
+        E.estil = id; guarda();
+        cont.querySelectorAll('.opcio').forEach((o) => o.classList.remove('sel')); b.classList.add('sel');
       };
       if (e.personal) {
         const ed = el('button', { class: 'edita', 'aria-label': T_('Edita'), text: '✎' });
@@ -448,44 +471,66 @@
     ]);
   }
 
-  // ------------------------------------------------------------ fons
+  // ------------------------------------------------------------ fons: base (o la foto) + logo
+  const NOMS_BASE = { FalcoOr: 'Llum daurada', Falco: 'Llum taronja', Pissarra: 'Pissarra', Taronja: 'Posta de sol', Crema: 'Corbes' };
+  const NOMS_LOGO = [['cap', 'Sense logo'], ['Falco', 'Falcó'], ['FalcoOr', "Falcó d'or"], ['Simbol', 'Falcó amb roda'],
+    ['Logotip', 'Logotip'], ['LogotipOr', "Logotip d'or"], ['LogotipOrTaronja', 'Or i taronja']];
   let fonsGen = 0, fonsTemps = null;
-  function pintaFons() {
-    clearTimeout(fonsTemps);
-    fonsTemps = setTimeout(pintaFonsAra, 80);
+  function pintaFons() { registraTria(); clearTimeout(fonsTemps); fonsTemps = setTimeout(pintaFonsAra, 80); }
+  function triaFoto() {
+    const inp = $('#tria-foto'); inp.value = '';
+    inp.onchange = async () => {
+      const f = inp.files && inp.files[0]; if (!f) return;
+      try { foto = await imatgeDe(f); await IDB.posa('foto', f); } catch (e) { alert(String(e.message || e)); return; }
+      E.base = 'foto'; guarda(); pintaFons();
+    };
+    inp.click();
   }
   async function pintaFonsAra() {
     const meu = ++fonsGen;
-    const cont = $('#fons');
+    const cont = $('#bases');
     cont.innerHTML = '';
     const w = 160, h = Math.round(160 * E.H / E.W);
-    for (const [id, nom] of Object.entries(M.FONS)) {
-      const propi = fonsPropis.find((x) => x.id === id);
-      const b = el('div', { class: 'opcio' + (id === E.fons ? ' sel' : ''), role: 'button', tabindex: '0' });
+    const tria = (id) => { E.base = id; guarda(); pintaFons(); };
+    // la foto de l'usuari, la primera
+    const bf = el('div', { class: 'opcio' + (E.base === 'foto' ? ' sel' : ''), role: 'button', tabindex: '0' });
+    if (foto) {
       const c = el('canvas', { width: String(w), height: String(h) });
-      b.append(c, el('span', { text: propi ? nom : T_(nom) }));
-      b.onclick = () => { E.fons = id; guarda(); cont.querySelectorAll('.opcio').forEach((o) => o.classList.remove('sel')); b.classList.add('sel'); pintaPreviaFons(); };
-      if (propi) {
-        const ed = el('button', { class: 'edita', 'aria-label': T_('Edita'), text: '✎' });
-        ed.onclick = (ev) => { ev.stopPropagation(); editaFons(propi); };
-        b.append(ed);
-      }
-      cont.append(b);
-      M.fons(id, w, h, true, opcionsFons()).then((f) => { if (meu === fonsGen) c.getContext('2d').drawImage(f, 0, 0); });
+      bf.append(c, el('span', { text: T_('La meva foto') }));
+      const ed = el('button', { class: 'edita', 'aria-label': T_('Canvia la foto'), text: '✎' });
+      ed.onclick = (ev) => { ev.stopPropagation(); triaFoto(); };
+      bf.append(ed);
+      bf.onclick = () => tria('foto');
+      M.registraFons('_m_foto', '', { base: 'foto', foto, logo: E.logo, aura: true });
+      M.fons('_m_foto', w, h, false, opcionsFons()).then((f) => { if (meu === fonsGen) c.getContext('2d').drawImage(f, 0, 0); });
+    } else {
+      bf.append(el('div', { class: 'foto-buida', text: '+' }), el('span', { text: T_('La meva foto') }));
+      bf.onclick = triaFoto;
     }
-    const nou = el('button', { class: 'opcio nou' }, [el('b', { text: '+' }), el('span', { text: T_('Nou fons') })]);
-    nou.onclick = () => editaFons(null);
-    cont.append(nou);
+    cont.append(bf);
+    for (const [id, nom] of Object.entries(NOMS_BASE)) {
+      const b = el('div', { class: 'opcio' + (id === E.base ? ' sel' : ''), role: 'button', tabindex: '0' });
+      const c = el('canvas', { width: String(w), height: String(h) });
+      b.append(c, el('span', { text: T_(nom) }));
+      b.onclick = () => tria(id);
+      cont.append(b);
+      M.registraFons('_m_' + id, '', { base: id, logo: E.logo, aura: true });
+      M.fons('_m_' + id, w, h, false, opcionsFons()).then((f) => { if (meu === fonsGen) c.getContext('2d').drawImage(f, 0, 0); });
+    }
+    const lg = $('#logos'); lg.innerHTML = '';
+    lg.append(segment(NOMS_LOGO, E.logo, (v) => { E.logo = v; guarda(); $('#logo-opcions').hidden = v === 'cap'; pintaFons(); }));
+    $('#logo-opcions').hidden = E.logo === 'cap';
     pintaPreviaFons();
   }
   let previaGen = 0;
   async function pintaPreviaFons() {
     const meu = ++previaGen;
+    registraTria();
     if ($('#previa-centre')) pintaPreviaCentre();
     if ($('#previa-bloq')) pintaPreviaBloq();
     const cont = $('#previa-fons');
     const w = 150, h = Math.round(150 * E.H / E.W);
-    const [a, b] = await Promise.all([M.fons(E.fons, w, h, false, opcionsFons()), M.fons(E.fons, w, h, true, opcionsFons())]);
+    const [a, b] = await Promise.all([M.fons(TRIA, w, h, false, opcionsFons()), M.fons(TRIA, w, h, true, opcionsFons())]);
     if (meu !== previaGen) return;
     cont.innerHTML = '';
     for (const [f, t] of [[a, 'Inici'], [b, 'Bloqueig']]) {
@@ -509,75 +554,6 @@
     $('#escala').oninput = () => { E.escala = $('#escala').value / 100; pinta(); guarda(); pintaFons(); };
     $('#b-reinicia').onclick = () => { E.dyInici = 0; E.dyBloq = 0; E.escala = 1; guarda(); lligaLliscadors(); pintaFons(); };
     pinta();
-  }
-
-  function editaFons(existent) {
-    const id = existent ? existent.id : 'F' + Date.now().toString(36);
-    const cfg = existent ? { ...existent.cfg } : { base: 'degradat', c1: '#24344A', c2: '#1A2533', logo: 'LogotipOrTaronja', aura: true };
-    let nom = existent ? existent.nom : T_('El meu fons');
-    let foto = null, fotoBlob = null;
-    const prova = 'F_prova';
-    const w = 150, h = Math.round(150 * E.H / E.W);
-    const pv = el('div', { class: 'previes-mini' });
-    let pend = null;
-    const refresca = () => {
-      clearTimeout(pend);
-      pend = setTimeout(async () => {
-        M.registraFons(prova, nom, { ...cfg, foto });
-        const [a, b] = await Promise.all([M.fons(prova, w, h, false, opcionsFons()), M.fons(prova, w, h, true, opcionsFons())]);
-        pv.innerHTML = '';
-        for (const f of [a, b]) { const c = el('canvas', { width: String(w), height: String(h) }); c.getContext('2d').drawImage(f, 0, 0); pv.append(c); }
-      }, 80);
-    };
-    const carregaFoto = async () => {
-      if (existent && cfg.base === 'foto') { try { const bl = await IDB.agafa(id); if (bl) { fotoBlob = bl; foto = await imatgeDe(bl); } } catch { /* res */ } }
-      refresca();
-    };
-    obreModal(existent ? T_('Edita el fons') : T_('Nou fons de pantalla'), (cos) => {
-      const nomInp = el('input', { type: 'text', value: nom, maxlength: '30' }); nomInp.oninput = () => { nom = nomInp.value; };
-      const blocBase = el('div');
-      const pintaBase = () => {
-        blocBase.innerHTML = '';
-        if (cfg.base === 'foto') {
-          const b = el('button', { class: 'sec', text: foto ? T_('Canvia la foto') : T_('Tria una foto') });
-          b.onclick = () => {
-            const inp = $('#tria-foto'); inp.value = '';
-            inp.onchange = async () => {
-              const f = inp.files && inp.files[0]; if (!f) return;
-              fotoBlob = f; foto = await imatgeDe(f); pintaBase(); refresca();
-            };
-            inp.click();
-          };
-          blocBase.append(b);
-        } else {
-          blocBase.append(mostres(cfg.c1, (c) => { cfg.c1 = c; refresca(); }), el('div', { style: 'height:8px' }), mostres(cfg.c2, (c) => { cfg.c2 = c; refresca(); }));
-        }
-      };
-      const aura = el('input', { type: 'checkbox' }); aura.checked = cfg.aura !== false; aura.onchange = () => { cfg.aura = aura.checked; refresca(); };
-      cos.append(pv,
-        bloc('Nom', nomInp),
-        bloc('Fons', segment([['degradat', 'Degradat de dos colors'], ['foto', 'Una foto meva']], cfg.base, (v) => { cfg.base = v; pintaBase(); refresca(); }), el('div', { style: 'height:8px' }), blocBase),
-        bloc('Logo', segment([['cap', 'Sense logo'], ...Object.entries(M.LOGOS)], cfg.logo, (v) => { cfg.logo = v; refresca(); }),
-          el('label', { class: 'check' }, [aura, el('span', { text: T_('Aura de llum al voltant del logo') })])));
-      pintaBase(); carregaFoto();
-    }, [
-      { text: T_('Desa'), classe: 'princ', fes: async () => {
-        if (cfg.base === 'foto' && !foto) { alert(T_('Tria una foto')); return; }
-        M.treuFons(prova);
-        const reg = { id, nom: nom.trim() || T_('El meu fons'), cfg };
-        if (cfg.base === 'foto' && fotoBlob) { try { await IDB.posa(id, fotoBlob); } catch (e) { alert(String(e)); return; } }
-        fonsPropis = fonsPropis.filter((x) => x.id !== id).concat(reg);
-        escriu('xt-fons', fonsPropis);
-        M.registraFons(id, reg.nom, { ...cfg, foto });
-        E.fons = id; guarda(); tancaModal(); pintaFons();
-      } },
-      ...(existent ? [{ text: T_('Esborra'), fes: async () => {
-        fonsPropis = fonsPropis.filter((x) => x.id !== id); escriu('xt-fons', fonsPropis);
-        try { await IDB.treu(id); } catch { /* res */ }
-        M.treuFons(id); M.treuFons(prova); if (E.fons === id) E.fons = 'LogotipOrTaronja'; guarda(); tancaModal(); pintaFons();
-      } }] : []),
-      { text: T_('Cancel·la'), fes: () => { M.treuFons(prova); tancaModal(); } },
-    ]);
   }
 
   // ------------------------------------------------------------ xips del sistema
@@ -632,19 +608,23 @@
     const n = ($('#nom').value || 'Xoriguer').normalize('NFKD').replace(/[^\w -]/g, '').trim().replace(/\s+/g, '-');
     return (n || 'Xoriguer') + '.mtz';
   }
+  function llegeixParts() {
+    for (const k of ['icones', 'fons', 'bloqueig', 'colors']) E.parts[k] = $('#part-' + k).checked;
+    guarda();
+  }
   async function crea() {
-    const b = $('#b-crea'); b.disabled = true;
     $('#resultat').hidden = true; $('#missatge').textContent = ''; $('#ajuda-aplica').hidden = true;
     const pr = $('#progres'); pr.hidden = false; const barra = pr.firstElementChild;
     if (E.model === 'altre') { E.W = +$('#amp').value || 1080; E.H = +$('#alc').value || 2400; }
     const pf = PAL_FONS.find((p) => p.id === E.palFons) || PAL_FONS[0], pa = PAL_ACCENT.find((p) => p.id === E.accent) || PAL_ACCENT[0];
     const apps = E.apps ? E.apps.map((a) => ({ paquet: a.paquet, icona: a.icona })) : Object.keys(window.CATALEG).map((p) => ({ paquet: p }));
     const est = M.ESTILS[E.estil] || M.ESTILS.Color3D;
+    registraTria();
     try {
       const r = await M.creaTema({
-        estil: M.ESTILS[E.estil] ? E.estil : 'Color3D', fons: M.FONS[E.fons] ? E.fons : 'LogotipOrTaronja', W: E.W, H: E.H,
-        nom: $('#nom').value || 'Xoriguer', fonsOpcions: opcionsFons(),
-        descripcio: `Xoriguer Temes · ${est.personal ? est.nom : T_(est.nom)} · ${T_(M.FONS[E.fons] || '')}`,
+        estil: M.ESTILS[E.estil] ? E.estil : 'Color3D', fons: TRIA, W: E.W, H: E.H,
+        nom: $('#nom').value || 'Xoriguer', fonsOpcions: opcionsFons(), parts: { ...E.parts },
+        descripcio: `Xoriguer Temes · ${est.personal ? est.nom : T_(est.nom)}`,
         apps, originals: !$('#l-originals').hidden && $('#originals').checked,
         plenes: !$('#l-plenes').hidden && $('#plenes').checked,
         sistema: $('#sistema').checked, paleta: { fons: pf.fons, targeta: pf.targeta, accent: pa.c },
@@ -652,18 +632,30 @@
         rellotge: $('#rellotge').checked ? { ...E.rl, llisca: T_('Llisca amunt per desbloquejar'), textos: { grup: 'Xoriguer', posicio: T_('Posició del rellotge (% de l’alçada)'), resum: T_('0 = a dalt de tot, 60 = cap a baix'), data: T_('Mostra la data') } } : null,
         progres: (f) => { barra.style.width = Math.round(f * 100) + '%'; },
       });
-      E.resultat = { ...r, nom: nomFitxer() };
+      E.resultat = { ...r, nom: nomFitxer(), flags: M.flagsParts(E.parts) };
       $('#img-inici').src = r.previa.toDataURL('image/jpeg', 0.85);
       $('#img-bloq').src = r.bloqueig.toDataURL('image/jpeg', 0.85);
       $('#res-text').textContent = T_('{n} icones · {w}×{h} · {mb} MB', { n: r.icones, w: E.W, h: E.H, mb: (r.bytes.length / 1048576).toFixed(1) });
       $('#nom-fitxer').textContent = E.resultat.nom;
       $('#resultat').hidden = false;
-      $('#resultat').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return true;
     } catch (e) {
       console.error(e);
       $('#missatge').textContent = T_("No s'ha pogut crear el tema: {e}", { e: e.message || e });
       $('#resultat').hidden = false;
-    } finally { b.disabled = false; setTimeout(() => { pr.hidden = true; barra.style.width = '0'; }, 600); }
+      return false;
+    } finally { setTimeout(() => { pr.hidden = true; barra.style.width = '0'; }, 600); }
+  }
+  async function fes() {
+    llegeixParts();
+    if (!Object.values(E.parts).some(Boolean)) { alert(T_('Marca almenys una cosa per canviar.')); return; }
+    const b = $('#b-fes'); b.disabled = true;
+    try {
+      if (!(await crea())) return;
+      if (E.potAplicar) await aplica();
+      else if (Plat.tipus === 'web') await desa();
+      $('#resultat').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } finally { b.disabled = false; }
   }
   async function desa() {
     const r = await Plat.desa(E.resultat.bytes, E.resultat.nom);
@@ -671,14 +663,28 @@
     else if (r && r.ok) $('#missatge').textContent = T_('Desat.');
   }
   async function aplica() {
-    const b = $('#b-aplica'); b.disabled = true;
     $('#missatge').textContent = T_('Aplicant el tema…'); $('#ajuda-aplica').hidden = true;
     try {
-      const r = await Plat.aplica(E.resultat.bytes, E.resultat.nom);
+      const r = await Plat.aplica(E.resultat.bytes, E.resultat.nom, E.resultat.flags);
       if (r.tria) { $('#ajuda-aplica').hidden = false; $('#missatge').textContent = ''; }
       else $('#missatge').textContent = r.ok ? T_('Fet! El tema ja és al telèfon.') : T_("No s'ha pogut aplicar: {e}", { e: r.missatge || '' });
     } catch (e) { $('#missatge').textContent = T_("No s'ha pogut aplicar: {e}", { e: e.message || e }); }
-    b.disabled = false;
+  }
+
+  // ------------------------------------------------------------ passos
+  function vesA(n) {
+    E.pas = Math.max(1, Math.min(5, n));
+    document.querySelectorAll('section.pas').forEach((s) => { s.hidden = +s.dataset.pas !== E.pas; });
+    document.querySelectorAll('#passos button').forEach((b) => {
+      const k = +b.dataset.pas;
+      b.classList.toggle('act', k === E.pas); b.classList.toggle('fet', k < E.pas);
+    });
+    $('#b-enrere').hidden = E.pas === 1;
+    $('#b-seguent').hidden = E.pas === 5;
+    if (E.pas === 2) pintaFons();
+    if (E.pas === 3) pintaPreviaBloq();
+    if (E.pas === 4) pintaPreviaCentre();
+    window.scrollTo({ top: 0 });
   }
 
   // ------------------------------------------------------------ arrencada
@@ -686,17 +692,18 @@
     const l = I18N.posa(desat.llengua || '');
     document.documentElement.lang = l;
     I18N.tradueix(document.body);
-    // vista prèvia gran del fons triat (inici i bloqueig), damunt dels lliscadors
-    const pv = el('div', { id: 'previa-fons', class: 'previes-mini' });
-    $('#l-logo').before(pv);
     registraEstils();
     registraRellotges();
     if (!M.RELLOTGES[E.rl.estil]) E.rl.estil = 'taronja';
-    $('#amb-logo').checked = !E.senseLogo; $('#logo-opcions').hidden = E.senseLogo;
-    $('#amb-logo').onchange = () => { E.senseLogo = !$('#amb-logo').checked; $('#logo-opcions').hidden = E.senseLogo; guarda(); pintaFons(); };
-    await registraFonsPropis();
+    await carregaFoto();
     if (!M.ESTILS[E.estil]) E.estil = 'Color3D';
-    if (!M.FONS[E.fons]) E.fons = 'LogotipOrTaronja';
+    registraTria();
+    $('#logo-bloq').checked = E.logoBloq;
+    $('#logo-bloq').onchange = () => { E.logoBloq = $('#logo-bloq').checked; guarda(); pintaFons(); };
+    for (const k of ['icones', 'fons', 'bloqueig', 'colors']) { $('#part-' + k).checked = E.parts[k] !== false; $('#part-' + k).onchange = llegeixParts; }
+    document.querySelectorAll('#passos button').forEach((b) => { b.onclick = () => vesA(+b.dataset.pas); });
+    $('#b-enrere').onclick = () => vesA(E.pas - 1);
+    $('#b-seguent').onclick = () => vesA(E.pas + 1);
 
     $('#b-opcions').onclick = opcions;
     $('#modal-tanca').onclick = tancaModal;
@@ -710,9 +717,8 @@
       try { await Plat.descarregaAdb(); } catch (e) { $('#estat-tlf').textContent = String(e.message || e); return; }
       buscaTelefon();
     };
-    $('#b-crea').onclick = crea;
+    $('#b-fes').onclick = fes;
     $('#b-desa').onclick = desa;
-    $('#b-aplica').onclick = aplica;
     if (!$('#nom').value) $('#nom').value = 'Xoriguer';
     lligaLliscadors();
     pintaEstils();
@@ -722,6 +728,7 @@
     pintaRellotge();
     lligaArrossega();
     aplicaModel();
+    vesA(1);
     buscaTelefon();
   }
   arrenca();

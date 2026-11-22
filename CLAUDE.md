@@ -105,6 +105,17 @@ Dues parts:
 - A la vista prèvia del bloqueig: arrossegar mou el rellotge (`alinea:'lliure'`, `cx`) i les cantonades el fan més gran o
   més petit (`lligaArrossega` a app.js). Mida per defecte del digital 0.55 (mitja pantalla; migració `rlMida`).
 
+## 2.0 (en curs, 22/11/2026, sense publicar)
+- Assistent pas a pas (demanat per l'usuari: «més senzill, com MIUI»): 1 Icones, 2 Fons, 3 Bloqueig, 4 Colors, 5 Aplica
+  (`vesA()` a app.js, barra fixa Enrere/Següent). Opcions avançades dins de `<details class="mes">`.
+- Fons = base + logo per separat (`E.base`: FalcoOr/Falco/Pissarra/Taronja/Crema/foto, `E.logo`, `E.logoBloq`; `Motor.BASES`).
+  La foto de l'usuari és a IndexedDB amb la clau 'foto'. Es registra com a fons '_tria'. L'editor de fons propis ja no hi és (migració de `xt-fons`).
+- Pas 5: «Què vols canviar al telèfon?» (icones, fons, bloqueig, colors) → el .mtz porta només aquestes parts i s'aplica amb
+  `Motor.flagsParts` (theme_apply_flags; TemesPont.posaParts, main.js). Icones sol = 8 i bloqueig sol = 4100 (provat);
+  **les combinacions (1 + flags) encara no estan provades al mòbil**.
+- Per què no es podia triar el rellotge de luxe al mòbil: la vista prèvia del bloqueig omplia la pantalla i amb `touch-action:none`
+  no es podia fer lliscar fins a la galeria. Ara la galeria va abans i la vista prèvia és petita.
+
 ## Pendent
 - Provar l'APK al mòbil (llista d'apps amb icones, desar, selector del gestor de temes): **publicada sense provar** (decisió de l'usuari).
 - Provar en altres models i HyperOS.

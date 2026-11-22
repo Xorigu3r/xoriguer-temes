@@ -188,6 +188,15 @@ public class TemesPont extends Plugin {
         if (Build.VERSION.SDK_INT >= 29) new Thread(this::esborraImatges).start();   // restes d'un tema anterior
     }
 
+    /** Només les parts triades (Motor.flagsParts a www/js/motor.js): la resta del tema del telèfon no es toca. */
+    private static void posaParts(Intent i, PluginCall call) {
+        Long f = call.getLong("flags", -1L);
+        if (f != null && f != -1L) {
+            i.putExtra("theme_apply_flags", (long) f);
+            i.putExtra("theme_remove_flags", 0L);
+        }
+    }
+
     @PluginMethod
     public void aplicaDirecte(PluginCall call) {
         if (Build.VERSION.SDK_INT < 29) { call.reject("antic"); return; }
@@ -214,6 +223,7 @@ public class TemesPont extends Plugin {
                 i.setClassName("com.android.thememanager", "com.android.thememanager.ApplyThemeForScreenshot");
                 i.putExtra("theme_file_path", cami);
                 i.putExtra("api_called_from", "xoriguer-temes");
+                posaParts(i, call);
                 i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                 getActivity().startActivity(i);
                 // el gestor copia el tema a /data/system/theme en pocs segons: després ja el podem esborrar
@@ -253,6 +263,7 @@ public class TemesPont extends Plugin {
             i.setClassName("com.android.thememanager", "com.android.thememanager.ApplyThemeForScreenshot");
             i.putExtra("theme_file_path", cami);
             i.putExtra("api_called_from", "xoriguer-temes");
+                posaParts(i, call);
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             getActivity().startActivity(i);
             r.put("ok", true);

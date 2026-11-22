@@ -88,7 +88,7 @@ ipcMain.handle('desa', async (e, { nom, dades }) => {
   return { ok: true, cami: r.filePath };
 });
 
-ipcMain.handle('aplica', async (e, { nom, dades }) => {
+ipcMain.handle('aplica', async (e, { nom, dades, flags }) => {
   const d = await dispositiu();
   if (!d || !d.serie) return { ok: false, missatge: 'No hi ha cap telèfon connectat.' };
   const tmp = path.join(os.tmpdir(), 'xoriguer-temes-' + nom.replace(/[^\w.-]/g, '_'));
@@ -103,7 +103,9 @@ ipcMain.handle('aplica', async (e, { nom, dades }) => {
     // si el gestor ja era obert, només el portaria al davant: el tanquem i obrim una tasca nova
     await adb([...s, 'shell', 'am', 'force-stop', 'com.android.thememanager']);
     await adb([...s, 'shell', 'am', 'start', '--activity-clear-task', '-f', '0x10008000', '-n',
-      'com.android.thememanager/.ApplyThemeForScreenshot', '-e', 'theme_file_path', desti, '-e', 'api_called_from', 'xoriguer-temes']);
+      'com.android.thememanager/.ApplyThemeForScreenshot', '-e', 'theme_file_path', desti, '-e', 'api_called_from', 'xoriguer-temes',
+      // només les parts triades (la resta es queda com és al telèfon)
+      ...(flags != null && flags !== -1 ? ['--el', 'theme_apply_flags', String(flags), '--el', 'theme_remove_flags', '0'] : [])]);
     await new Promise((r) => setTimeout(r, 11000));
     await adb([...s, 'shell', 'input', 'keyevent', 'KEYCODE_HOME'], { ignora: true });
     const desc = await adb([...s, 'shell', 'cat', '/data/system/theme/description.xml'], { ignora: true });

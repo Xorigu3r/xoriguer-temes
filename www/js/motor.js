@@ -521,6 +521,8 @@
   };
   /** Fons fets per l'usuari: id -> {base:'degradat'|'foto', c1, c2, foto (Image), logo: clau de LOGOS o 'cap', aura} */
   const PERSONALS = {};
+  /** Fons de sèrie que es poden fer servir de base (sense logo) amb un logo a triar */
+  const BASES = ['Falco', 'FalcoOr', 'Pissarra', 'Taronja', 'Crema'];
   function registraFons(id, nom, cfg) { PERSONALS[id] = cfg; FONS[id] = nom; }
   function treuFons(id) { delete PERSONALS[id]; delete FONS[id]; }
 
@@ -554,14 +556,17 @@
     const c = tela(W, H), x = ctx2(c), u = W / 1080;
     const pers = PERSONALS[estil];
     if (pers) {
-      if (pers.base === 'foto' && pers.foto) {   // la foto omple la pantalla (retallada al centre)
+      if (BASES.includes(pers.base)) {   // un fons de sèrie, sense el seu logo
+        x.drawImage(await fons(pers.base, W, H, bloqueig, { ...o, senseLogo: true }), 0, 0);
+      } else if (pers.base === 'foto' && pers.foto) {   // la foto omple la pantalla (retallada al centre)
         const f = pers.foto, r = Math.max(W / f.width, H / f.height);
         x.imageSmoothingQuality = 'high';
         x.drawImage(f, (W - f.width * r) / 2, (H - f.height * r) / 2, f.width * r, f.height * r);
       } else {
         x.fillStyle = degradat(x, W, H, pers.c1 || P.FONS_A, pers.c2 || P.FONS_B); x.fillRect(0, 0, W, H);
       }
-      if (!o.senseLogo && pers.logo && pers.logo !== 'cap') await dibuixaLogo(x, pers.logo, W, H, bloqueig, o, pers.aura !== false);
+      const ambLogo = !o.senseLogo && pers.logo && pers.logo !== 'cap' && !(bloqueig && pers.logoBloq === false);
+      if (ambLogo) await dibuixaLogo(x, pers.logo, W, H, bloqueig, o, pers.aura !== false);
       return c;
     }
     if (estil.startsWith('Falco') || estil.startsWith('Logotip')) {
@@ -1067,10 +1072,25 @@ ${rellotgeXml}
    *   paleta:{fons, targeta, accent}, progres(f, text)}
    * Retorna {bytes: Uint8Array (.mtz), previa: canvas, bloqueig: canvas}
    */
+  /**
+   * Indicadors del gestor de temes de MIUI (theme_apply_flags) per aplicar només unes parts (provat al Mi 10T Lite, MIUI 14).
+   * framework 1 · wallpaper 2 · fons de bloqueig 4 · icons 8 · lockstyle 4096 · statusbar 0x2000 · thirdapp 0x10000000.
+   * Una sola part només va si el gestor la reconeix tota sola (icones; bloqueig = 4100); si no, amb 1 fa servir el camí del tema sencer
+   * i salta les parts que no hi són. -1 = tot.
+   */
+  function flagsParts(p) {
+    const n = ['icones', 'fons', 'bloqueig', 'colors'].filter((k) => p[k]);
+    if (n.length === 4) return -1;
+    if (n.length === 1 && p.icones) return 8;
+    if (n.length === 1 && p.bloqueig) return 4100;
+    return 1 + (p.icones ? 8 : 0) + (p.fons ? 6 : 0) + (p.bloqueig ? 4096 + (p.fons ? 0 : 4) : 0) + (p.colors ? 0x2000 + 0x10000000 : 0);
+  }
+
   async function creaTema(o) {
     const prog = o.progres || (() => {});
     const icones = {};
-    const llista = o.apps;
+    const parts = Object.assign({ icones: true, fons: true, bloqueig: true, colors: true }, o.parts || {});
+    const llista = parts.icones ? o.apps : [];
     for (let i = 0; i < llista.length; i++) {
       const a = llista[i];
       // plenes: a les icones amb marc, la icona original de cada app (si la tenim) omple l'interior
@@ -1094,8 +1114,8 @@ ${rellotgeXml}
 
     const z = new g.Zip();
     z.afegeix('description.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<theme>\n    <title>${esc(o.nom)}</title>\n    <designer>Xoriguer</designer>\n    <author>Xoriguer Temes</author>\n    <version>1.0</version>\n    <uiVersion>14</uiVersion>\n    <description>${esc(o.descripcio || '')}</description>\n</theme>\n`);
-    z.afegeix('icons', zi.bytes());
-    if (o.sistema && g.SISTEMA) {
+    if (parts.icones) z.afegeix('icons', zi.bytes());
+    if (parts.colors && o.sistema && g.SISTEMA) {
       const pal = o.paleta;
       const quadrat = {};
       for (const [rol, col] of [['f', pal.fons], ['t', pal.targeta]]) {
@@ -1112,17 +1132,18 @@ ${rellotgeXml}
         z.afegeix(paq, zc.bytes());
       }
     }
-    if (o.centre) {   // Centre de control de MIUI 14 (miui.systemui.plugin): provat al Mi 10T Lite
+    if (parts.colors && o.centre) {   // Centre de control de MIUI 14 (miui.systemui.plugin): provat al Mi 10T Lite
       const zc = new g.Zip(), tv = themeValuesDirectes(colorsCentre(o.centre));
       zc.afegeix('theme_values.xml', tv); zc.afegeix('nightmode/theme_values.xml', tv);
       z.afegeix('miui.systemui.plugin', zc.bytes());
     }
-    if (o.rellotge) {   // pantalla de bloqueig pròpia amb el rellotge Xoriguer
+    if (parts.bloqueig && o.rellotge) {   // pantalla de bloqueig pròpia amb el rellotge Xoriguer
       z.afegeix('lockscreen', await componentBloqueig(o.rellotge));
       z.afegeix('plugin_config.xml', '<?xml version="1.0" encoding="utf-8"?>\n<PluginConfig>\n  <lockscreen/>\n</PluginConfig>\n');
     }
-    z.afegeix('wallpaper/default_wallpaper.jpg', await aBytes(inici, 'image/jpeg', 0.9));
-    z.afegeix('wallpaper/default_lock_wallpaper.jpg', await aBytes(bloq, 'image/jpeg', 0.9));
+    if (parts.fons) z.afegeix('wallpaper/default_wallpaper.jpg', await aBytes(inici, 'image/jpeg', 0.9));
+    // la pantalla de bloqueig pròpia necessita el seu fons (si no, MIUI el treu en aplicar-la)
+    if (parts.fons || parts.bloqueig) z.afegeix('wallpaper/default_lock_wallpaper.jpg', await aBytes(bloq, 'image/jpeg', 0.9));
     const mitja = (c) => { const m = tela(Math.round(c.width / 2), Math.round(c.height / 2)); ctx2(m).drawImage(c, 0, 0, m.width, m.height); return m; };
     z.afegeix('preview/preview_icons_0.jpg', await aBytes(mitja(prev), 'image/jpeg', 0.85));
     z.afegeix('preview/preview_launcher_0.jpg', await aBytes(mitja(prev), 'image/jpeg', 0.85));
@@ -1131,6 +1152,6 @@ ${rellotgeXml}
     return { bytes: z.bytes(), previa: prev, bloqueig: bloqPrevia, icones: Object.keys(icones).length };
   }
 
-  g.Motor = { ESTILS, FONS, LOGOS, P, S, icona, fons, creaTema, carregaImatge, colorApp, registraEstil, treuEstil, registraFons, treuFons, previaCentre, RELLOTGES, dibuixaRellotge,
+  g.Motor = { ESTILS, FONS, LOGOS, BASES, flagsParts, P, S, icona, fons, creaTema, carregaImatge, colorApp, registraEstil, treuEstil, registraFons, treuFons, previaCentre, RELLOTGES, dibuixaRellotge,
     registraRellotge, treuRellotge, mostraRellotge, PROPIS_RL, caixaRellotge, esAgulles };
 })(window);

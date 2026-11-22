@@ -20,12 +20,93 @@
     </button>
   </header>
 
-  <main>
-    <p class="intro">Crea un tema per al teu Xiaomi, Redmi o POCO (MIUI): icones, fons de pantalla i colors de les pantalles del sistema.</p>
+  <nav class="passos" id="passos" aria-label="Passos">
+    <button data-pas="1"><b>1</b><span>Icones</span></button>
+    <button data-pas="2"><b>2</b><span>Fons</span></button>
+    <button data-pas="3"><b>3</b><span>Bloqueig</span></button>
+    <button data-pas="4"><b>4</b><span>Colors</span></button>
+    <button data-pas="5"><b>5</b><span>Aplica</span></button>
+  </nav>
 
-    <!-- 1. telèfon -->
-    <section class="targeta" id="sec-tlf">
-      <h2><span class="num">1</span><span>El telèfon</span></h2>
+  <main>
+    <!-- 1. icones -->
+    <section class="pas" data-pas="1">
+      <h2>Tria l'estil de les icones</h2>
+      <div id="estils" class="graella"></div>
+      <details class="mes"><summary>Més opcions</summary>
+        <label class="check" id="l-originals" hidden><input type="checkbox" id="originals" checked> Les apps que no són al catàleg, amb la seva icona dins del marc</label>
+        <label class="check" id="l-plenes" hidden><input type="checkbox" id="plenes" checked> Als estils amb marc metàl·lic, la icona original de cada app a dins (en lloc del dibuix Xoriguer)</label>
+        <p class="suau petit" id="sense-originals">Amb el telèfon connectat (o amb l'app al mòbil) també es poden posar les icones originals de les apps dins dels marcs.</p>
+      </details>
+    </section>
+
+    <!-- 2. fons -->
+    <section class="pas" data-pas="2" hidden>
+      <h2>Fons de pantalla</h2>
+      <div id="previa-fons" class="previes-mini"></div>
+      <div class="sub">Fons</div>
+      <div id="bases" class="graella fons"></div>
+      <div class="sub">Logo a sobre</div>
+      <div id="logos"></div>
+      <label class="check"><input type="checkbox" id="logo-bloq"> Posa el logo també a la pantalla de bloqueig</label>
+      <details class="mes" id="logo-opcions"><summary>Posició i mida del logo</summary>
+        <div class="lliscadors">
+          <label class="lliscador"><span>Inici</span><input type="range" id="dy-inici" min="-30" max="30" step="1" value="0"><output id="o-inici"></output></label>
+          <label class="lliscador"><span>Bloqueig</span><input type="range" id="dy-bloq" min="-30" max="30" step="1" value="0"><output id="o-bloq"></output></label>
+          <label class="lliscador"><span>Mida</span><input type="range" id="escala" min="50" max="150" step="5" value="100"><output id="o-escala"></output></label>
+        </div>
+        <button id="b-reinicia" class="sec petit">Posició i mida originals</button>
+      </details>
+    </section>
+
+    <!-- 3. pantalla de bloqueig -->
+    <section class="pas" data-pas="3" hidden>
+      <h2>Pantalla de bloqueig</h2>
+      <label class="check"><input type="checkbox" id="rellotge" checked> Rellotge Xoriguer a la pantalla de bloqueig</label>
+      <div id="rellotge-opcions">
+        <div class="sub">Estil del rellotge</div><div id="rl-estil" class="graella"></div>
+        <label class="check"><input type="checkbox" id="rl-data" checked> Mostra la data</label>
+        <canvas id="previa-bloq" class="previa-centre petita arrossega" width="432" height="960"></canvas>
+        <p class="suau petit centrat">Arrossega el rellotge per moure'l i estira les cantonades per fer-lo més gran o més petit.</p>
+        <details class="mes"><summary>Més opcions</summary>
+          <div class="sub">Alineació</div><div id="rl-alinea"></div>
+          <div class="lliscadors" style="margin-top:12px">
+            <label class="lliscador"><span>Posició</span><input type="range" id="rl-posy" min="2" max="85" step="1"><output id="o-rl-posy"></output></label>
+            <label class="lliscador"><span>Mida</span><input type="range" id="rl-escala" min="30" max="160" step="1"><output id="o-rl-escala"></output></label>
+          </div>
+          <p class="suau petit">Substitueix la pantalla de bloqueig de MIUI: hi ha el rellotge, la data i les notificacions; no hi ha els controls de música ni la drecera de la càmera. Es desbloqueja lliscant amunt (i després el PIN o l'empremta, com sempre).</p>
+        </details>
+        <p class="ajuda">Si després canvies el fons de bloqueig des de la Galeria o des de Fons de pantalla, MIUI treu el rellotge. Per canviar-lo i conservar el rellotge, tria el fons al pas 2 (també hi pots posar una foto teva) i torna a aplicar el tema.</p>
+      </div>
+    </section>
+
+    <!-- 4. colors -->
+    <section class="pas" data-pas="4" hidden>
+      <h2>Colors</h2>
+      <label class="check"><input type="checkbox" id="sistema" checked> Tenyeix Configuració, Seguretat, Notes, Calculadora i altres apps de MIUI (mode fosc)</label>
+      <div id="sistema-opcions">
+        <div class="sub">Color de fons</div>
+        <div id="pal-fons" class="xips"></div>
+        <div class="sub">Color d'accent</div>
+        <div id="pal-accent" class="xips"></div>
+      </div>
+      <label class="check separa"><input type="checkbox" id="centre" checked> Personalitza el Centre de control (MIUI 14): Wi‑Fi, dades, brillantor, so i la resta de botons</label>
+      <div id="centre-opcions">
+        <canvas id="previa-centre" class="previa-centre petita"width="432" height="660"></canvas>
+        <div class="sub">Botons encesos</div><div id="cc-on"></div>
+        <details class="mes"><summary>Més colors del Centre de control</summary>
+          <div class="sub">Dades mòbils i llanterna</div><div id="cc-segon"></div>
+          <div class="sub">Botons apagats</div><div id="cc-off"></div>
+          <div class="sub">Icones dels botons encesos</div><div id="cc-icona"></div>
+          <div class="sub">Barres de brillantor i volum</div><div id="cc-barra"></div>
+          <div class="sub">Hora i data</div><div id="cc-rellotge"></div>
+        </details>
+      </div>
+    </section>
+
+    <!-- 5. aplicar -->
+    <section class="pas" data-pas="5" hidden>
+      <h2>Aplica el tema</h2>
       <div id="estat-tlf" class="estat">Buscant el telèfon…</div>
       <div id="ajuda-usb" class="ajuda" hidden>
         <p><b>Per connectar-lo:</b> al mòbil, activa les <b>Opcions de desenvolupador</b> (Configuració → Sobre el telèfon → toca 7 vegades «Versió de MIUI»)
@@ -35,102 +116,38 @@
       <div class="camp"><span>Model</span>
         <button id="b-model" class="tria" data-no-t><span id="nom-model"></span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button>
       </div>
-      <div class="fila">
+      <div class="fila" id="resolucio" hidden>
         <label class="camp petit">Amplada <input id="amp" type="number" min="480" max="3000" step="1"></label>
         <label class="camp petit">Alçada <input id="alc" type="number" min="800" max="4000" step="1"></label>
       </div>
-    </section>
-
-    <!-- 2. icones -->
-    <section class="targeta">
-      <h2><span class="num">2</span><span>Estil de les icones</span></h2>
-      <div id="estils" class="graella"></div>
-      <label class="check" id="l-originals" hidden><input type="checkbox" id="originals" checked> Les apps que no són al catàleg, amb la seva icona dins del marc</label>
-      <label class="check" id="l-plenes" hidden><input type="checkbox" id="plenes" checked> Als estils amb marc metàl·lic, la icona original de cada app a dins (en lloc del dibuix Xoriguer)</label>
-    </section>
-
-    <!-- 3. fons -->
-    <section class="targeta">
-      <h2><span class="num">3</span><span>Fons de pantalla</span></h2>
-      <div id="fons" class="graella fons"></div>
-      <label class="check" id="l-logo"><input type="checkbox" id="amb-logo" checked> Posa el logo Xoriguer al fons de pantalla</label>
-      <div id="logo-opcions">
-      <div class="sub">Posició i mida del logo</div>
-      <div class="lliscadors">
-        <label class="lliscador"><span>Inici</span><input type="range" id="dy-inici" min="-30" max="30" step="1" value="0"><output id="o-inici"></output></label>
-        <label class="lliscador"><span>Bloqueig</span><input type="range" id="dy-bloq" min="-30" max="30" step="1" value="0"><output id="o-bloq"></output></label>
-        <label class="lliscador"><span>Mida</span><input type="range" id="escala" min="50" max="150" step="5" value="100"><output id="o-escala"></output></label>
+      <div class="sub">Què vols canviar al telèfon?</div>
+      <div class="parts">
+        <label class="check"><input type="checkbox" id="part-icones" checked> Icones</label>
+        <label class="check"><input type="checkbox" id="part-fons" checked> Fons de pantalla</label>
+        <label class="check"><input type="checkbox" id="part-bloqueig" checked> Pantalla de bloqueig (rellotge)</label>
+        <label class="check"><input type="checkbox" id="part-colors" checked> Colors del sistema i Centre de control</label>
       </div>
-      <button id="b-reinicia" class="sec petit">Posició i mida originals</button>
-      </div>
-    </section>
-
-    <!-- 4. sistema -->
-    <section class="targeta">
-      <h2><span class="num">4</span><span>Pantalles del sistema</span></h2>
-      <label class="check"><input type="checkbox" id="sistema" checked> Tenyeix Configuració, Seguretat, Notes, Calculadora i altres apps de MIUI (mode fosc)</label>
-      <div class="sub">Color de fons</div>
-      <div id="pal-fons" class="xips"></div>
-      <div class="sub">Color d'accent</div>
-      <div id="pal-accent" class="xips"></div>
-    </section>
-
-    <!-- 5. centre de control -->
-    <section class="targeta">
-      <h2><span class="num">5</span><span>Centre de control</span></h2>
-      <label class="check"><input type="checkbox" id="centre" checked> Personalitza el Centre de control (MIUI 14): Wi‑Fi, dades, brillantor, so i la resta de botons</label>
-      <div id="centre-opcions">
-        <canvas id="previa-centre" class="previa-centre" width="432" height="660"></canvas>
-        <div class="sub">Botons encesos</div><div id="cc-on"></div>
-        <div class="sub">Dades mòbils i llanterna</div><div id="cc-segon"></div>
-        <div class="sub">Botons apagats</div><div id="cc-off"></div>
-        <div class="sub">Icones dels botons encesos</div><div id="cc-icona"></div>
-        <div class="sub">Barres de brillantor i volum</div><div id="cc-barra"></div>
-        <div class="sub">Hora i data</div><div id="cc-rellotge"></div>
-      </div>
-    </section>
-
-    <!-- 6. pantalla de bloqueig -->
-    <section class="targeta">
-      <h2><span class="num">6</span><span>Pantalla de bloqueig</span></h2>
-      <label class="check"><input type="checkbox" id="rellotge" checked> Rellotge Xoriguer a la pantalla de bloqueig</label>
-      <p class="suau petit">Substitueix la pantalla de bloqueig de MIUI: hi ha el rellotge, la data i les notificacions; no hi ha els controls de música ni la drecera de la càmera. Es desbloqueja lliscant amunt (i després el PIN o l'empremta, com sempre).</p>
-      <div id="rellotge-opcions">
-        <p class="ajuda">Atenció: si després canvies el fons de la pantalla de bloqueig des de la Galeria o des de Fons de pantalla, MIUI treu aquesta pantalla de bloqueig i el rellotge. Per canviar el fons i conservar el rellotge, tria'l aquí (apartat 3, també amb una foto teva) i torna a aplicar el tema.</p>
-        <canvas id="previa-bloq" class="previa-centre arrossega" width="432" height="960"></canvas>
-        <p class="suau petit centrat">Arrossega el rellotge per moure'l i estira les cantonades per fer-lo més gran o més petit.</p>
-        <div class="sub">Estil del rellotge</div><div id="rl-estil" class="graella"></div>
-        <div class="sub">Alineació</div><div id="rl-alinea"></div>
-        <div class="lliscadors" style="margin-top:12px">
-          <label class="lliscador"><span>Posició</span><input type="range" id="rl-posy" min="4" max="64" step="1"><output id="o-rl-posy"></output></label>
-          <label class="lliscador"><span>Mida</span><input type="range" id="rl-escala" min="30" max="160" step="1"><output id="o-rl-escala"></output></label>
-        </div>
-        <label class="check"><input type="checkbox" id="rl-data" checked> Mostra la data</label>
-      </div>
-    </section>
-
-    <!-- 7. crear -->
-    <section class="targeta">
-      <h2><span class="num">7</span><span>Crea el tema</span></h2>
+      <p class="suau petit">El que no marquis es queda com ara al telèfon.</p>
       <label class="camp">Nom del tema <input id="nom" maxlength="40"></label>
-      <button id="b-crea" class="princ">Crea el tema</button>
+      <button id="b-fes" class="princ gran">Aplica al telèfon</button>
       <div id="progres" class="progres" hidden><div></div></div>
       <div id="resultat" hidden>
         <div class="previes"><img id="img-inici" alt=""><img id="img-bloq" alt=""></div>
         <p id="res-text" class="suau petit"></p>
-        <div class="botons">
-          <button id="b-aplica" class="princ">Aplica al telèfon</button>
-          <button id="b-desa" class="sec">Desa el fitxer .mtz</button>
-        </div>
         <div id="ajuda-aplica" class="ajuda" hidden>
           S'ha obert el gestor de temes amb el selector de fitxers: busca <b id="nom-fitxer"></b> a <b>Descàrregues</b> (o fes servir la lupa) i toca'l. El tema s'aplica sol.
         </div>
         <div id="missatge" class="estat"></div>
+        <div class="botons"><button id="b-desa" class="sec">Desa el fitxer .mtz</button></div>
       </div>
+      <p class="peu suau petit">Funciona amb MIUI 12, 13 i 14 (provat amb MIUI 14). Els temes es fan dins del teu aparell: no es puja res enlloc.</p>
     </section>
-
-    <p class="peu suau petit">Funciona amb MIUI 12, 13 i 14 (provat amb MIUI 14). Els temes es fan dins del teu aparell: no es puja res enlloc.</p>
   </main>
+
+  <footer class="navega">
+    <button id="b-enrere" class="sec">Enrere</button>
+    <button id="b-seguent" class="princ">Següent</button>
+  </footer>
 
   <!-- finestra (opcions, llistes, editors) -->
   <div id="modal" class="modal" hidden>
