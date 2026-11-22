@@ -124,6 +124,17 @@ Dues parts:
 - Per què no es podia triar el rellotge de luxe al mòbil: la vista prèvia del bloqueig omplia la pantalla i amb `touch-action:none`
   no es podia fer lliscar fins a la galeria. Ara la galeria va abans i la vista prèvia és petita.
 
+## 2.0.1 (22/11/2026, publicada)
+- Fons d'inici i de bloqueig per separat (`E.baseB` 'igual'/base/foto, foto a IndexedDB 'foto-bloq', `E.logoB`), pestanyes al pas 2.
+- Pas 5, opció «Els fons de pantalla i la pantalla de bloqueig (conserva les icones)» (només APK): fons d'inici amb
+  WallpaperManager FLAG_SYSTEM (`TemesPont.posaFonsInici`), espera 7 s (Android reinicia finestres en recalcular colors) i
+  després el bloqueig amb 4100. Provat al Mi 10T Lite: icones de bronze conservades, rellotge i fons posats.
+- Errors de la 2.0.0 corregits: `call.getLong("flags")` donava -1 (arriba Integer) → ara `getData().optLong`; l'app és
+  `screenOrientation="portrait"` (amb el mòbil apaïsat el gestor de temes es reiniciava a mitja feina i ho deixava tot buit).
+- Idees pendents: imatge de fons a Configuració (drawable `miuix_appcompat_settings_window_bg_dark`, totes les pantalles,
+  només amb «Tot el tema»); conservar les icones del tema actual des de Windows (`MIUI/theme/.data/content/icons/<uuid>.mrc`,
+  mateixa mida que /data/system/theme/icons).
+
 ## Pendent
 - Provar l'APK al mòbil (llista d'apps amb icones, desar, selector del gestor de temes): **publicada sense provar** (decisió de l'usuari).
 - Provar en altres models i HyperOS.
