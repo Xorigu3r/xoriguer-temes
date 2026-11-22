@@ -709,7 +709,13 @@
     $('#missatge').textContent = T_('Aplicant el tema…'); $('#ajuda-aplica').hidden = true;
     try {
       // fons + bloqueig: primer el fons d'inici (Android) i després la pantalla de bloqueig amb el tema (4100)
-      if (E.abast === 'fons-bloq' && E.resultat.fonsInici) await Plat.posaFonsInici(E.resultat.fonsInici);
+      if (E.abast === 'fons-bloq' && E.resultat.fonsInici) {
+        await Plat.posaFonsInici(E.resultat.fonsInici);
+        // Android recalcula els colors del sistema amb el fons nou i reinicia les finestres: si el gestor de temes
+        // s'obre abans, es tanca a mitja feina (provat al Mi 10T Lite). Esperem que acabi.
+        $('#missatge').textContent = T_('Posant el fons de pantalla…');
+        await new Promise((r) => setTimeout(r, 7000));
+      }
       const r = await Plat.aplica(E.resultat.bytes, E.resultat.nom, E.resultat.flags);
       if (r.tria) { $('#ajuda-aplica').hidden = false; $('#missatge').textContent = ''; }
       else $('#missatge').textContent = r.ok ? T_('Fet! El tema ja és al telèfon.') : T_("No s'ha pogut aplicar: {e}", { e: r.missatge || '' });
