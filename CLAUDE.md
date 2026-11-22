@@ -80,6 +80,12 @@ Dues parts:
   `config.xml` (posy, data) es pot canviar al mòbil amb el botó d'ajustos (MamlConfigSettings, maml_code=lockstyle).
   Provat al Mi 10T Lite: es veu bé i lliscar amunt porta al PIN. Exemple estudiat: BrS v9 (miuithemer.com).
 
+## 1.5.0 (22/11/2026, publicada)
+- Estils de rellotge propis (`Motor.registraRellotge`, `RL_CFG`, localStorage `xt-rellotges`): lletra, color (color/degradat/or/
+  plata/contorn), separador (: · cap) i el seu color, vora, color de la data (també al DateTime del MAML). Galeria amb mostres.
+- Casella «Posa el logo Xoriguer al fons» (`fonsOpcions.senseLogo`, desat a `xt-opcions`): cap fons porta logo.
+- APK instal·lat al Mi 10T Lite i s'obre; l'editor només s'ha provat al navegador.
+
 ## Pendent
 - Provar l'APK al mòbil (llista d'apps amb icones, desar, selector del gestor de temes): **publicada sense provar** (decisió de l'usuari).
 - Provar en altres models i HyperOS.
