@@ -136,6 +136,11 @@ Dues parts:
   mateixa mida que /data/system/theme/icons).
 
 ## Després de la 2.0.1 (23/11/2026, sense publicar)
+- Llistes de Configuració semitransparents (provat al Mi 10T Lite, «es veu bé»): les llistes fan servir
+  `miuix_preference_list_item_bg_color_dark` → `@color/miuix_appcompat_black`; amb imatge, NOMÉS a `nightmode/theme_values.xml`
+  de com.android.settings: negre, llistes i fons (rol f) = pissarra amb alfa 8c.
+- Per tenir icones d'un tema descarregat + el nostre: aplicar «Tot el tema» i després, a «Temes» de MIUI, tornar a aplicar només
+  les icones del tema descarregat (així conserva el seu .mra i la comprovació DRM no ho desfà).
 - Pas 4: «Imatge de fons a Configuració» (cap / foto 'foto-config' / el fons d'inici, «Enfosqueix»): substitueix els drawables
   `f` de `com.android.settings` per la imatge enfosquida (`Motor.imatgeConfiguracio`). Només amb «Tot el tema».
 - **TRET: copiar les icones del tema actual dins del nostre (.mrc de MIUI/theme/.data/content/icons).** Es va aplicar bé, però
