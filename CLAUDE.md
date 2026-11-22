@@ -135,6 +135,13 @@ Dues parts:
   només amb «Tot el tema»); conservar les icones del tema actual des de Windows (`MIUI/theme/.data/content/icons/<uuid>.mrc`,
   mateixa mida que /data/system/theme/icons).
 
+## Després de la 2.0.1 (23/11/2026, sense publicar)
+- Pas 4: «Imatge de fons a Configuració» (cap / foto 'foto-config' / el fons d'inici, «Enfosqueix»): substitueix els drawables
+  `f` de `com.android.settings` per la imatge enfosquida (`Motor.imatgeConfiguracio`). Només amb «Tot el tema».
+- Windows, pas 5: «conserva les icones que tens ara» (`icones-actuals` a main.js: l'.mrc de MIUI/theme/.data/content/icons amb la
+  mateixa mida que /data/system/theme/icons) → `creaTema({iconesPropies})`. Provat al Mi 10T Lite: icones de bronze conservades,
+  Configuració amb imatge, rellotge i colors. Ull: la carpeta `rights` queda buida (el .mra de les icones de bronze desapareix).
+
 ## Pendent
 - Provar l'APK al mòbil (llista d'apps amb icones, desar, selector del gestor de temes): **publicada sense provar** (decisió de l'usuari).
 - Provar en altres models i HyperOS.
