@@ -428,6 +428,57 @@
     if (e.personal) return iconaPersonal(e.personal, paquet, original);
     return e.color ? iconaColor(estil, paquet, original) : iconaXoriguer(estil, paquet, original);
   }
+  // ------------------------------------------------------------ memòria d'icones
+  // Dibuixar les 172 icones és el que fa lent crear el tema: es preparen d'amagat mentre l'usuari tria la resta
+  // (app.js crida preparaIcones) i es guarden (PNG) a la memòria i a IndexedDB per a la vegada següent.
+  const VER_IC = 'ic2';   // canvia-ho si canvia el dibuix de les icones (així no es reaprofiten les velles)
+  const memIc = new Map();
+  let magatzem = null;    // {agafa(k), posa(k, v)}: el posa app.js (IndexedDB)
+  const posaMagatzem = (m) => { magatzem = m; };
+  function hashText(t) { let h = 5381; const pas = Math.max(1, Math.floor(t.length / 4000)); for (let i = 0; i < t.length; i += pas) h = ((h * 33) ^ t.charCodeAt(i)) >>> 0; return h.toString(36) + '.' + t.length; }
+  function clauIcona(estil, paquet, original, plena) {
+    const e = ESTILS[estil];
+    const ek = e && e.personal ? 'P' + hashText(JSON.stringify(e.personal)) : estil;
+    return `${VER_IC}|${ek}|${paquet}|${plena ? 1 : 0}|${original ? hashText(original) : ''}`;
+  }
+  function iconaBytes(estil, paquet, original, plena) {
+    const k = clauIcona(estil, paquet, original, plena);
+    let pr = memIc.get(k);   // es guarda la promesa: si ja s'està fent (d'amagat), s'espera la mateixa feina
+    if (pr) return pr;
+    pr = (async () => {
+      let b = null;
+      if (magatzem) { try { b = await magatzem.agafa(k); } catch { b = null; } }
+      if (b) return b;
+      b = await aBytes(await icona(estil, paquet, original, plena));
+      if (magatzem) Promise.resolve(magatzem.posa(k, b)).catch(() => {});
+      return b;
+    })();
+    memIc.set(k, pr);
+    pr.catch(() => memIc.delete(k));
+    return pr;
+  }
+  /** Les icones que porta el tema: les del catàleg i (si cal) les originals de les apps del telèfon */
+  function iconesAFer(o) {
+    const r = [];
+    for (const a of o.apps || []) {
+      const plena = !!(o.plenes && a.icona);
+      if (!g.CATALEG[a.paquet] && !(o.originals && a.icona) && !plena) continue;
+      r.push({ paquet: a.paquet, original: (o.originals || plena) ? a.icona : null, plena });
+    }
+    return r;
+  }
+  /** Prepara les icones d'amagat. o: {estil, apps, originals, plenes}; atura() → true per parar (l'usuari ha canviat d'estil) */
+  async function preparaIcones(o, atura) {
+    let n = 0;
+    for (const a of iconesAFer(o)) {
+      if (atura && atura()) return n;
+      const k = clauIcona(o.estil, a.paquet, a.original, a.plena);
+      if (!memIc.has(k)) { await iconaBytes(o.estil, a.paquet, a.original, a.plena); await new Promise((r) => setTimeout(r)); }
+      n++;
+    }
+    return n;
+  }
+
   /** Afegeix (o substitueix) un estil fet per l'usuari */
   function registraEstil(id, nom, cfg) {
     ESTILS[id] = { nom, forma: cfg.forma, gruix: 2.3, color: true, fons: 'Falco', personal: cfg };
@@ -622,12 +673,13 @@
     'com.miui.gallery', 'com.android.settings', 'com.miui.calculator', 'com.miui.notes',
     'cat.xoriguer.aparcament', 'cat.xoriguer.trucades', 'cat.xoriguer.temps', 'cat.xoriguer.pdf'];
 
-  async function previa(fonsCanvas, icones) {
+  async function previa(fonsCanvas, icones) {   // icones: paquet -> PNG (bytes)
     const W = fonsCanvas.width, H = fonsCanvas.height;
     const c = tela(W, H), x = ctx2(c); x.drawImage(fonsCanvas, 0, 0);
     const noms = MOSTRA.filter((p) => icones[p]).concat(Object.keys(icones).filter((p) => !MOSTRA.includes(p))).slice(0, 20);
     const col = 4, mida = W * 0.178, marge = (W - col * mida) / (col + 1);
-    noms.forEach((p, i) => x.drawImage(icones[p], marge + (i % col) * (mida + marge), H * 0.11 + Math.floor(i / col) * (mida + marge * 1.6), mida, mida));
+    const imgs = await Promise.all(noms.map((p) => createImageBitmap(new Blob([icones[p]], { type: 'image/png' }))));
+    imgs.forEach((im, i) => x.drawImage(im, marge + (i % col) * (mida + marge), H * 0.11 + Math.floor(i / col) * (mida + marge * 1.6), mida, mida));
     return c;
   }
 
@@ -1090,14 +1142,12 @@ ${rellotgeXml}
     const prog = o.progres || (() => {});
     const icones = {};
     const parts = Object.assign({ icones: true, fons: true, bloqueig: true, colors: true }, o.parts || {});
-    const llista = parts.icones ? o.apps : [];
-    for (let i = 0; i < llista.length; i++) {
+    // plenes: a les icones amb marc, la icona original de cada app (si la tenim) omple l'interior
+    const llista = parts.icones ? iconesAFer(o) : [];
+    for (let i = 0; i < llista.length; i++) {   // les ja preparades surten de la memòria a l'instant
       const a = llista[i];
-      // plenes: a les icones amb marc, la icona original de cada app (si la tenim) omple l'interior
-      const plena = !!(o.plenes && a.icona);
-      if (!g.CATALEG[a.paquet] && !(o.originals && a.icona) && !plena) continue;
-      icones[a.paquet] = await icona(o.estil, a.paquet, (o.originals || plena) ? a.icona : null, plena);
-      if (i % 4 === 0) { prog(0.05 + 0.6 * i / llista.length, 'icones'); await new Promise((r) => setTimeout(r)); }
+      icones[a.paquet] = await iconaBytes(o.estil, a.paquet, a.original, a.plena);
+      if (i % 8 === 0) { prog(0.05 + 0.6 * i / llista.length, 'icones'); await new Promise((r) => setTimeout(r)); }
     }
     prog(0.68, 'fons');
     const inici = await fons(o.fons, o.W, o.H, false, o.fonsOpcions);
@@ -1109,7 +1159,7 @@ ${rellotgeXml}
 
     const zi = new g.Zip();
     zi.afegeix('transform_config.xml', '<?xml version="1.0" encoding="UTF-8"?>\n<IconTransform>\n    <Config name="SupportLayerIcon" value="false" />\n    <Config name="UseDynamicIcon" value="false" />\n</IconTransform>\n');
-    for (const [p, c] of Object.entries(icones)) zi.afegeix(`res/drawable-xxhdpi/${p}.png`, await aBytes(c));
+    for (const [p, b] of Object.entries(icones)) zi.afegeix(`res/drawable-xxhdpi/${p}.png`, b);
     for (const [n, c] of Object.entries(iconesFallback(o.estil))) zi.afegeix(`res/drawable-xxhdpi/${n}`, await aBytes(c));
 
     const z = new g.Zip();
@@ -1152,6 +1202,6 @@ ${rellotgeXml}
     return { bytes: z.bytes(), previa: prev, bloqueig: bloqPrevia, icones: Object.keys(icones).length };
   }
 
-  g.Motor = { ESTILS, FONS, LOGOS, BASES, flagsParts, P, S, icona, fons, creaTema, carregaImatge, colorApp, registraEstil, treuEstil, registraFons, treuFons, previaCentre, RELLOTGES, dibuixaRellotge,
+  g.Motor = { ESTILS, FONS, LOGOS, BASES, flagsParts, preparaIcones, posaMagatzem, VER_IC, P, S, icona, fons, creaTema, carregaImatge, colorApp, registraEstil, treuEstil, registraFons, treuFons, previaCentre, RELLOTGES, dibuixaRellotge,
     registraRellotge, treuRellotge, mostraRellotge, PROPIS_RL, caixaRellotge, esAgulles };
 })(window);

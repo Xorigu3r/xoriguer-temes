@@ -113,6 +113,9 @@ Dues parts:
 - Pas 5: «Què vols canviar al telèfon?» (icones, fons, bloqueig, colors) → el .mtz porta només aquestes parts i s'aplica amb
   `Motor.flagsParts` (theme_apply_flags; TemesPont.posaParts, main.js). Icones sol = 8 i bloqueig sol = 4100 (provat);
   **les combinacions (1 + flags) encara no estan provades al mòbil**.
+- Velocitat: les icones (el 85% del temps) es preparen d'amagat en triar l'estil (`Motor.preparaIcones`, cridat per
+  `preparaIcones()` a app.js) i es guarden com a PNG a la memòria (promeses compartides) i a IndexedDB (magatzem 'icones',
+  clau `VER_IC|estil|paquet|...`; **canvia `VER_IC` si canvies el dibuix de les icones**). Ordinador: 3,8 s → 0,6 s.
 - Per què no es podia triar el rellotge de luxe al mòbil: la vista prèvia del bloqueig omplia la pantalla i amb `touch-action:none`
   no es podia fer lliscar fins a la galeria. Ara la galeria va abans i la vista prèvia és petita.
 

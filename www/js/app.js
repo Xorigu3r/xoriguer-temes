@@ -238,20 +238,38 @@
     obre() {
       if (this.db) return Promise.resolve(this.db);
       return new Promise((ok, ko) => {
-        const r = indexedDB.open('xoriguer-temes', 1);
-        r.onupgradeneeded = () => r.result.createObjectStore('fotos');
+        const r = indexedDB.open('xoriguer-temes', 2);
+        r.onupgradeneeded = () => { for (const m of ['fotos', 'icones']) if (!r.result.objectStoreNames.contains(m)) r.result.createObjectStore(m); };
         r.onsuccess = () => { this.db = r.result; ok(this.db); };
         r.onerror = () => ko(r.error);
       });
     },
-    async op(mode, f) {
-      const db = await this.obre();
-      return new Promise((ok, ko) => { const t = db.transaction('fotos', mode); const r = f(t.objectStore('fotos')); t.oncomplete = () => ok(r && r.result); t.onerror = () => ko(t.error); });
+    async op(mode, f, magatzem) {
+      const db = await this.obre(), m = magatzem || 'fotos';
+      return new Promise((ok, ko) => { const t = db.transaction(m, mode); const r = f(t.objectStore(m)); t.oncomplete = () => ok(r && r.result); t.onerror = () => ko(t.error); });
     },
-    posa(k, v) { return this.op('readwrite', (s) => s.put(v, k)); },
-    agafa(k) { return this.op('readonly', (s) => s.get(k)); },
-    treu(k) { return this.op('readwrite', (s) => s.delete(k)); },
+    posa(k, v, m) { return this.op('readwrite', (s) => s.put(v, k), m); },
+    agafa(k, m) { return this.op('readonly', (s) => s.get(k), m); },
+    treu(k, m) { return this.op('readwrite', (s) => s.delete(k), m); },
+    /** Esborra les icones desades d'una versió anterior del dibuix */
+    netejaIcones(ver) { return this.op('readwrite', (s) => { const r = s.openKeyCursor(); r.onsuccess = () => { const c = r.result; if (!c) return; if (!String(c.key).startsWith(ver + '|')) s.delete(c.key); c.continue(); }; }, 'icones'); },
   };
+
+  // ------------------------------------------------------------ icones preparades d'amagat (crear el tema va molt més de pressa)
+  let prepGen = 0, prepTemps = null;
+  function opcionsIcones() {
+    const apps = E.apps ? E.apps.map((a) => ({ paquet: a.paquet, icona: a.icona })) : Object.keys(window.CATALEG).map((p) => ({ paquet: p }));
+    return { estil: M.ESTILS[E.estil] ? E.estil : 'Color3D', apps,
+      originals: !$('#l-originals').hidden && $('#originals').checked, plenes: !$('#l-plenes').hidden && $('#plenes').checked };
+  }
+  /** Torna a preparar les icones (després d'un canvi d'estil, d'apps o d'opcions); la preparació anterior es para sola */
+  function preparaIcones() {
+    clearTimeout(prepTemps);
+    prepTemps = setTimeout(() => {
+      const meu = ++prepGen;
+      M.preparaIcones(opcionsIcones(), () => meu !== prepGen).catch((e) => console.warn('prepara icones', e));
+    }, 400);
+  }
   const imatgeDe = (blob) => new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = URL.createObjectURL(blob); });
 
   // ------------------------------------------------------------ estils propis i la foto del fons
@@ -387,6 +405,7 @@
     $('#l-plenes').hidden = $('#l-originals').hidden;
     $('#sense-originals').hidden = !$('#l-originals').hidden;
     E.potAplicar = !!(Plat.potAplicar && i.connectat);
+    preparaIcones();   // ara ja sabem quines apps té el telèfon
     $('#b-fes').textContent = E.potAplicar ? T_('Aplica al telèfon') : T_('Crea el tema');
     aplicaModel();
   }
@@ -406,7 +425,7 @@
       const c = el('canvas', { width: '400', height: '110' });
       b.append(c, el('span', { text: e.personal ? e.nom : T_(e.nom) }));
       b.onclick = () => {
-        E.estil = id; guarda();
+        E.estil = id; guarda(); preparaIcones();
         cont.querySelectorAll('.opcio').forEach((o) => o.classList.remove('sel')); b.classList.add('sel');
       };
       if (e.personal) {
@@ -461,7 +480,7 @@
         const reg = { id, nom: nom.trim() || T_('El meu estil'), cfg };
         estilsPropis = estilsPropis.filter((x) => x.id !== id).concat(reg);
         escriu('xt-estils', estilsPropis);
-        M.registraEstil(id, reg.nom, cfg); E.estil = id; guarda(); tancaModal(); pintaEstils();
+        M.registraEstil(id, reg.nom, cfg); E.estil = id; guarda(); tancaModal(); pintaEstils(); preparaIcones();
       } },
       ...(existent ? [{ text: T_('Esborra'), fes: () => {
         estilsPropis = estilsPropis.filter((x) => x.id !== id); escriu('xt-estils', estilsPropis);
@@ -700,6 +719,9 @@
     registraTria();
     $('#logo-bloq').checked = E.logoBloq;
     $('#logo-bloq').onchange = () => { E.logoBloq = $('#logo-bloq').checked; guarda(); pintaFons(); };
+    M.posaMagatzem({ agafa: (k) => IDB.agafa(k, 'icones'), posa: (k, v) => IDB.posa(k, v, 'icones') });
+    IDB.netejaIcones(M.VER_IC).catch(() => {});
+    $('#originals').addEventListener('change', preparaIcones); $('#plenes').addEventListener('change', preparaIcones);
     for (const k of ['icones', 'fons', 'bloqueig', 'colors']) { $('#part-' + k).checked = E.parts[k] !== false; $('#part-' + k).onchange = llegeixParts; }
     document.querySelectorAll('#passos button').forEach((b) => { b.onclick = () => vesA(+b.dataset.pas); });
     $('#b-enrere').onclick = () => vesA(E.pas - 1);
