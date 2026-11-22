@@ -86,6 +86,10 @@ Dues parts:
 - Casella «Posa el logo Xoriguer al fons» (`fonsOpcions.senseLogo`, desat a `xt-opcions`): cap fons porta logo.
 - APK instal·lat al Mi 10T Lite i s'obre; l'editor només s'ha provat al navegador.
 
+- Rellotge de la pantalla d'inici: provat i DESCARTAT (22/11/2026). El component `clock_2x4` del .mtz s'instal·la a
+  /data/system/theme/, però al MIUI 14 global el giny «Classical clock» carrega sempre el seu propi mtz del sistema, i la
+  llista de ginys només mostra rellotges de temes importats (BD del gestor; un .mrc/.mrm posat a mà a `.data/` no surt).
+
 ## Pendent
 - Provar l'APK al mòbil (llista d'apps amb icones, desar, selector del gestor de temes): **publicada sense provar** (decisió de l'usuari).
 - Provar en altres models i HyperOS.
