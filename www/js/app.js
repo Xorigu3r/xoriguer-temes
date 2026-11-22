@@ -37,7 +37,8 @@
     rl: Object.assign({ estil: 'taronja', posy: 20, alinea: 'centre', escala: 0.55, data: true }, desat.rl || {}),
     // fons (2.0): una base i un logo a sobre, per separat
     base: desat.base || '', logo: desat.logo || '', logoBloq: !!desat.logoBloq,
-    baseB: desat.baseB || 'igual', logoB: desat.logoB, pantalla: 'inici',   // fons i logo de la pantalla de bloqueig
+    baseB: desat.baseB || 'igual', logoB: desat.logoB, pantalla: 'inici',
+    config: desat.config || 'cap', configFoscor: desat.configFoscor == null ? 0.55 : desat.configFoscor,   // fons de Configuració   // fons i logo de la pantalla de bloqueig
     parts: { icones: true, fons: true, bloqueig: true, colors: true },   // no es desa: cada cop comença amb «Tot el tema»
     pas: 1,
   };
@@ -54,7 +55,7 @@
   if (!desat.rlMida) { if (E.rl.escala === 0.8) E.rl.escala = 0.55; desat.rlMida = 1; }
   function guarda() {
     escriu('xt-opcions', { estil: E.estil, fons: E.fons, palFons: E.palFons, accent: E.accent, model: E.model, cc: E.cc, rl: E.rl,
-      dyInici: E.dyInici, dyBloq: E.dyBloq, escala: E.escala, base: E.base, logo: E.logo, baseB: E.baseB, logoB: E.logoB, llengua: desat.llengua || '', senseCarpeta: desat.senseCarpeta, rlMida: 1 });
+      dyInici: E.dyInici, dyBloq: E.dyBloq, escala: E.escala, base: E.base, logo: E.logo, baseB: E.baseB, logoB: E.logoB, config: E.config, configFoscor: E.configFoscor, llengua: desat.llengua || '', senseCarpeta: desat.senseCarpeta, rlMida: 1 });
   }
 
 
@@ -277,7 +278,7 @@
   // ------------------------------------------------------------ estils propis i la foto del fons
   let estilsPropis = llegeix('xt-estils', []);   // [{id, nom, cfg}]
   function registraEstils() { for (const e of estilsPropis) M.registraEstil(e.id, e.nom, e.cfg); }
-  let foto = null, fotoB = null;   // les fotos de l'usuari: inici (IndexedDB 'foto') i bloqueig ('foto-bloq')
+  let foto = null, fotoB = null, fotoC = null;   // fotoC: la de Configuració (IndexedDB 'foto-config')   // les fotos de l'usuari: inici (IndexedDB 'foto') i bloqueig ('foto-bloq')
   async function carregaFoto() {
     try {
       let b = await IDB.agafa('foto');
@@ -291,6 +292,8 @@
     if (E.base === 'foto' && !foto) E.base = 'FalcoOr';
     try { const b = await IDB.agafa('foto-bloq'); if (b) fotoB = await imatgeDe(b); } catch { /* res */ }
     if (E.baseB === 'foto' && !fotoB) E.baseB = 'igual';
+    try { const b = await IDB.agafa('foto-config'); if (b) fotoC = await imatgeDe(b); } catch { /* res */ }
+    if (E.config === 'foto' && !fotoC) E.config = 'cap';
   }
   const TRIA = '_tria';
   function registraTria() { M.registraFons(TRIA, '', { base: E.base, foto, logo: E.logo, baseB: E.baseB, fotoB, logoB: E.logoB, aura: true }); }
@@ -412,6 +415,8 @@
     preparaIcones();   // ara ja sabem quines apps té el telèfon
     // posar el fons d'inici sense tocar la resta del tema només es pot des de l'app del mòbil (WallpaperManager)
     $('#l-fons-bloq').hidden = !(Plat.potFonsInici && E.potAplicar);
+    // conservar les icones del tema actual: només des de Windows (adb pot llegir la carpeta del gestor de temes)
+    $('#l-cons-icones').hidden = !(Plat.potIconesActuals && E.potAplicar);
     $('#b-fes').textContent = E.potAplicar ? T_('Aplica al telèfon') : T_('Crea el tema');
     aplicaModel();
   }
@@ -597,13 +602,70 @@
     pinta();
   }
 
+  // ------------------------------------------------------------ imatge de fons a Configuració
+  const PAL_FONS_ACTUAL = () => (PAL_FONS.find((p) => p.id === E.palFons) || PAL_FONS[0]).fons;
+  async function imatgeConfig() {   // la imatge triada (foto o el fons d'inici) o null
+    if (E.config === 'foto' && fotoC) return fotoC;
+    if (E.config === 'inici') { registraTria(); return M.fons(TRIA, E.W, E.H, false, opcionsFons()); }
+    return null;
+  }
+  function triaFotoConfig() {
+    const inp = $('#tria-foto'); inp.value = '';
+    inp.onchange = async () => {
+      const f = inp.files && inp.files[0]; if (!f) return;
+      try { fotoC = await imatgeDe(f); await IDB.posa('foto-config', f); } catch (e) { alert(String(e.message || e)); return; }
+      E.config = 'foto'; guarda(); pintaConfig();
+    };
+    inp.click();
+  }
+  let confGen = 0;
+  async function pintaConfig() {
+    const meu = ++confGen;
+    const cont = $('#config-fons'); cont.innerHTML = '';
+    const w = 120, h = Math.round(120 * E.H / E.W);
+    // mostra: la imatge enfosquida amb unes quantes files de text de mentida, com la pantalla del Wi‑Fi
+    const dibuixa = (c, img) => {
+      const x = c.getContext('2d');
+      if (img) x.drawImage(M.imatgeConfiguracio(img, w, h, E.configFoscor, PAL_FONS_ACTUAL()), 0, 0);
+      else { x.fillStyle = PAL_FONS_ACTUAL(); x.fillRect(0, 0, w, h); }
+      x.fillStyle = 'rgba(246,239,226,.9)'; x.fillRect(10, 22, 40, 7);
+      for (let i = 0; i < 7; i++) { x.fillStyle = 'rgba(246,239,226,.75)'; x.fillRect(10, 48 + i * 24, 60, 5); x.fillStyle = 'rgba(185,178,165,.6)'; x.fillRect(10, 57 + i * 24, 38, 4); }
+    };
+    const rajola = (id, nom, img, onclick) => {
+      const b = el('div', { class: 'opcio' + (id === E.config ? ' sel' : ''), role: 'button', tabindex: '0' });
+      const c = el('canvas', { width: String(w), height: String(h) });
+      b.append(c, el('span', { text: T_(nom) }));
+      b.onclick = onclick || (() => { E.config = id; guarda(); pintaConfig(); });
+      cont.append(b);
+      Promise.resolve(img).then((im) => { if (meu === confGen) dibuixa(c, im); });
+      return b;
+    };
+    rajola('cap', 'Sense imatge', null);
+    if (fotoC) {
+      const b = rajola('foto', 'La meva foto', fotoC);
+      const ed = el('button', { class: 'edita', 'aria-label': T_('Canvia la foto'), text: '✎' });
+      ed.onclick = (ev) => { ev.stopPropagation(); triaFotoConfig(); };
+      b.append(ed);
+    } else {
+      const b = el('div', { class: 'opcio', role: 'button', tabindex: '0' });
+      b.append(el('div', { class: 'foto-buida', text: '+' }), el('span', { text: T_('La meva foto') }));
+      b.onclick = triaFotoConfig; cont.append(b);
+    }
+    registraTria();
+    rajola('inici', "El fons d'inici", M.fons(TRIA, w, h, false, opcionsFons()));
+    $('#config-foscor-bloc').hidden = E.config === 'cap';
+    const fs = $('#config-foscor');
+    fs.value = String(Math.round(E.configFoscor * 100)); $('#o-config-foscor').textContent = fs.value + '%';
+    fs.oninput = () => { E.configFoscor = fs.value / 100; $('#o-config-foscor').textContent = fs.value + '%'; guarda(); clearTimeout(fs.t); fs.t = setTimeout(pintaConfig, 120); };
+  }
+
   // ------------------------------------------------------------ xips del sistema
   function pintaXips(sel, llista, clau, mostra) {
     const cont = $(sel);
     cont.innerHTML = '';
     for (const p of llista) {
       const b = el('button', { class: 'xip' + (p.id === E[clau] ? ' sel' : ''), html: `<i style="background:${mostra(p)}"></i><span>${escH(T_(p.nom))}</span>` });
-      b.onclick = () => { E[clau] = p.id; guarda(); pintaXips(sel, llista, clau, mostra); };
+      b.onclick = () => { E[clau] = p.id; guarda(); pintaXips(sel, llista, clau, mostra); if (clau === 'palFons') pintaConfig(); };
       cont.append(b);
     }
   }
@@ -665,9 +727,17 @@
     const est = M.ESTILS[E.estil] || M.ESTILS.Color3D;
     registraTria();
     try {
+      let iconesPropies = null;
+      if (E.parts.icones && !$('#l-cons-icones').hidden && $('#cons-icones').checked) {
+        $('#missatge').textContent = T_('Copiant les icones que tens al telèfon…');
+        iconesPropies = await Plat.iconesActuals();
+        $('#missatge').textContent = '';
+      }
+      const fotoConfig = $('#sistema').checked ? await imatgeConfig() : null;
       const r = await M.creaTema({
         estil: M.ESTILS[E.estil] ? E.estil : 'Color3D', fons: TRIA, W: E.W, H: E.H,
-        nom: $('#nom').value || 'Xoriguer', fonsOpcions: opcionsFons(), parts: { ...E.parts },
+        nom: $('#nom').value || 'Xoriguer', fonsOpcions: opcionsFons(), parts: { ...E.parts }, iconesPropies,
+        config: fotoConfig ? { foto: fotoConfig, foscor: E.configFoscor } : null,
         descripcio: `Xoriguer Temes · ${est.personal ? est.nom : T_(est.nom)}`,
         apps, originals: !$('#l-originals').hidden && $('#originals').checked,
         plenes: !$('#l-plenes').hidden && $('#plenes').checked,
@@ -734,7 +804,7 @@
     $('#b-seguent').hidden = E.pas === 5;
     if (E.pas === 2) pintaFons();
     if (E.pas === 3) pintaPreviaBloq();
-    if (E.pas === 4) pintaPreviaCentre();
+    if (E.pas === 4) { pintaPreviaCentre(); pintaConfig(); }
     window.scrollTo({ top: 0 });
   }
 

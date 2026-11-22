@@ -55,6 +55,9 @@
     potAplicar: tipus !== 'web',
     /** Fons de la pantalla d'inici sense tocar la resta del tema (Android: WallpaperManager, TemesPont.posaFonsInici) */
     potFonsInici: !!cap,
+    /** Windows (adb): el component «icons» del tema que el telèfon té ara, per conservar-lo amb «Tot el tema» */
+    potIconesActuals: !!esc,
+    iconesActuals: () => (esc ? esc.iconesActuals() : Promise.reject(new Error('web'))),
     async posaFonsInici(bytes) {
       if (!cap) throw new Error('web');
       return cap.posaFonsInici({ dades: aBase64(bytes) });

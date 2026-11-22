@@ -89,6 +89,12 @@
         <div id="pal-fons" class="xips"></div>
         <div class="sub">Color d'accent</div>
         <div id="pal-accent" class="xips"></div>
+        <div class="sub">Imatge de fons a Configuració (Wi‑Fi, Bluetooth i la resta de pantalles)</div>
+        <div id="config-fons" class="graella fons"></div>
+        <div class="lliscadors" id="config-foscor-bloc">
+          <label class="lliscador"><span>Enfosqueix</span><input type="range" id="config-foscor" min="20" max="85" step="5"><output id="o-config-foscor"></output></label>
+        </div>
+        <p class="suau petit">Els colors i la imatge de Configuració es posen amb «Tot el tema» (pas 5).</p>
       </div>
       <label class="check separa"><input type="checkbox" id="centre" checked> Personalitza el Centre de control (MIUI 14): Wi‑Fi, dades, brillantor, so i la resta de botons</label>
       <div id="centre-opcions">
@@ -127,6 +133,7 @@
         <label class="check"><input type="radio" name="abast" value="icones"> Només les icones</label>
         <label class="check"><input type="radio" name="abast" value="bloqueig"> Només la pantalla de bloqueig (el rellotge i el seu fons)</label>
       </div>
+      <label class="check" id="l-cons-icones" hidden><input type="checkbox" id="cons-icones"> Amb «Tot el tema», conserva les icones que tens ara al telèfon</label>
       <p class="suau petit">Amb «Només…», la resta del tema del telèfon es queda com ara.</p>
       <label class="camp">Nom del tema <input id="nom" maxlength="40"></label>
       <button id="b-fes" class="princ gran">Aplica al telèfon</button>

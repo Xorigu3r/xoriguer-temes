@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('xtEscriptori', {
   apps: () => ipcRenderer.invoke('apps'),
   desa: (o) => ipcRenderer.invoke('desa', o),
   aplica: (o) => ipcRenderer.invoke('aplica', o),
+  iconesActuals: () => ipcRenderer.invoke('icones-actuals'),
   descarregaAdb: () => ipcRenderer.invoke('descarrega-adb'),
   obreExtern: (url) => ipcRenderer.send('obre-extern', url),
   busca: (url) => ipcRenderer.invoke('busca', url),

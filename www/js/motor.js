@@ -1137,6 +1137,15 @@ ${rellotgeXml}
    * icons 8 · lockstyle 4096 + fons de bloqueig 4 = 4100 (sense el 4, MIUI esborra el fons de bloqueig). -1 = tot el tema.
    * NO: barreges amb el bit 1 (framework, camí del tema sencer): esborren el fons d'inici encara que no hi sigui.
    */
+  /** Fons de Configuració: la foto omple la pantalla i s'enfosqueix amb el color de fons (foscor 0..1) perquè el text es llegeixi */
+  function imatgeConfiguracio(foto, W, H, foscor, color) {
+    const c = tela(W, H), x = ctx2(c), r = Math.max(W / foto.width, H / foto.height);
+    x.imageSmoothingQuality = 'high';
+    x.drawImage(foto, (W - foto.width * r) / 2, (H - foto.height * r) / 2, foto.width * r, foto.height * r);
+    x.globalAlpha = Math.max(0, Math.min(0.9, foscor == null ? 0.55 : foscor)); x.fillStyle = color || P.FONS; x.fillRect(0, 0, W, H);
+    return c;
+  }
+
   function flagsParts(p) {
     const n = ['icones', 'fons', 'bloqueig', 'colors'].filter((k) => p[k]);
     if (n.length === 1 && p.icones) return 8;
@@ -1151,7 +1160,8 @@ ${rellotgeXml}
     const icones = {};
     const parts = Object.assign({ icones: true, fons: true, bloqueig: true, colors: true }, o.parts || {});
     // plenes: a les icones amb marc, la icona original de cada app (si la tenim) omple l'interior
-    const llista = parts.icones ? iconesAFer(o) : [];
+    // iconesPropies: el component «icons» del tema que l'usuari ja té al telèfon (Windows, adb): no se'n dibuixa cap
+    const llista = parts.icones && !o.iconesPropies ? iconesAFer(o) : [];
     for (let i = 0; i < llista.length; i++) {   // les ja preparades surten de la memòria a l'instant
       const a = llista[i];
       icones[a.paquet] = await iconaBytes(o.estil, a.paquet, a.original, a.plena);
@@ -1172,7 +1182,7 @@ ${rellotgeXml}
 
     const z = new g.Zip();
     z.afegeix('description.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<theme>\n    <title>${esc(o.nom)}</title>\n    <designer>Xoriguer</designer>\n    <author>Xoriguer Temes</author>\n    <version>1.0</version>\n    <uiVersion>14</uiVersion>\n    <description>${esc(o.descripcio || '')}</description>\n</theme>\n`);
-    if (parts.icones) z.afegeix('icons', zi.bytes());
+    if (parts.icones) z.afegeix('icons', o.iconesPropies || zi.bytes());
     if (parts.colors && o.sistema && g.SISTEMA) {
       const pal = o.paleta;
       const quadrat = {};
@@ -1180,12 +1190,14 @@ ${rellotgeXml}
         const q = tela(16), xq = ctx2(q); xq.fillStyle = col; xq.fillRect(0, 0, 16, 16);
         quadrat[rol] = await aBytes(q);
       }
+      // imatge de fons a Configuració (totes les pantalles: Wi‑Fi, Bluetooth...): substitueix el fons de la finestra
+      const imgConf = o.config && o.config.foto ? await aBytes(imatgeConfiguracio(o.config.foto, o.W, o.H, o.config.foscor, pal.fons)) : null;
       for (const [paq, d] of Object.entries(g.SISTEMA)) {
         const zc = new g.Zip();
         const tv = themeValues(d.c, pal);
         for (const pre of ['', 'nightmode/']) {
           zc.afegeix(pre + 'theme_values.xml', tv);
-          for (const [nom, rol] of Object.entries(d.d)) zc.afegeix(`${pre}res/drawable-xxhdpi/${nom}.png`, quadrat[rol]);
+          for (const [nom, rol] of Object.entries(d.d)) zc.afegeix(`${pre}res/drawable-xxhdpi/${nom}.png`, imgConf && paq === 'com.android.settings' && rol === 'f' ? imgConf : quadrat[rol]);
         }
         z.afegeix(paq, zc.bytes());
       }
@@ -1211,6 +1223,6 @@ ${rellotgeXml}
     return { bytes: z.bytes(), previa: prev, bloqueig: bloqPrevia, icones: Object.keys(icones).length, fonsInici };
   }
 
-  g.Motor = { ESTILS, FONS, LOGOS, BASES, flagsParts, preparaIcones, posaMagatzem, VER_IC, P, S, icona, fons, creaTema, carregaImatge, colorApp, registraEstil, treuEstil, registraFons, treuFons, previaCentre, RELLOTGES, dibuixaRellotge,
+  g.Motor = { ESTILS, FONS, LOGOS, BASES, flagsParts, imatgeConfiguracio, preparaIcones, posaMagatzem, VER_IC, P, S, icona, fons, creaTema, carregaImatge, colorApp, registraEstil, treuEstil, registraFons, treuFons, previaCentre, RELLOTGES, dibuixaRellotge,
     registraRellotge, treuRellotge, mostraRellotge, PROPIS_RL, caixaRellotge, esAgulles };
 })(window);

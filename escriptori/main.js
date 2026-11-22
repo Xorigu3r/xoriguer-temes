@@ -115,6 +115,25 @@ ipcMain.handle('aplica', async (e, { nom, dades, flags }) => {
   } finally { fs.rm(tmp, () => {}); }
 });
 
+// Les icones del tema que el telèfon té ara: /data/system/theme/icons no es pot llegir, però el gestor de temes en guarda
+// una còpia a la seva carpeta (MIUI/theme/.data/content/icons/<uuid>.mrc): és la que fa la mateixa mida.
+ipcMain.handle('icones-actuals', async () => {
+  const d = await dispositiu();
+  if (!d || !d.serie) throw new Error('No hi ha cap telèfon connectat.');
+  const s = ['-s', d.serie];
+  const mida = (await adb([...s, 'shell', 'stat', '-c', '%s', '/data/system/theme/icons'], { ignora: true })).trim();
+  if (!/^\d+$/.test(mida)) throw new Error('El telèfon no té icones de cap tema (porta les de MIUI de sèrie).');
+  const dir = '/sdcard/Android/data/com.android.thememanager/files/MIUI/theme/.data/content/icons';
+  const llista = await adb([...s, 'shell', `ls -l ${dir}`], { ignora: true });
+  const fila = llista.split(/\r?\n/).map((l) => l.trim().split(/\s+/)).find((p) => p.length >= 8 && p[4] === mida && /\.mrc$/.test(p[p.length - 1]));
+  if (!fila) throw new Error('No trobo les icones del tema actual a la carpeta del gestor de temes.');
+  const tmp = path.join(os.tmpdir(), 'xoriguer-icones-actuals.mrc');
+  try {
+    await adb([...s, 'pull', `${dir}/${fila[fila.length - 1]}`, tmp], { timeout: 120000 });
+    return new Uint8Array(fs.readFileSync(tmp));
+  } finally { fs.rm(tmp, () => {}); }
+});
+
 ipcMain.handle('descarrega-adb', async () => {
   const dest = app.getPath('userData');
   const zip = path.join(dest, 'platform-tools.zip');
