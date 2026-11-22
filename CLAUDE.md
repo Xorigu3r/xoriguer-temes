@@ -139,6 +139,9 @@ Dues parts:
 - Llistes de Configuració semitransparents (provat al Mi 10T Lite, «es veu bé»): les llistes fan servir
   `miuix_preference_list_item_bg_color_dark` → `@color/miuix_appcompat_black`; amb imatge, NOMÉS a `nightmode/theme_values.xml`
   de com.android.settings: negre, llistes i fons (rol f) = pissarra amb alfa 8c.
+- La mateixa imatge a altres apps miuix (`AMB_IMATGE` a motor.js): com.android.phone (SIM), com.xiaomi.account, com.miui.miservice,
+  com.xiaomi.discover (actualitzador), com.miui.home (ajustos de l'escriptori). Només nightmode/ i a mitja resolució (tema 12,7 MB).
+  Provat al Mi 10T Lite el 23/11/2026: es veu bé (també l'escriptori). Bienestar digital (Google) no es pot.
 - Per tenir icones d'un tema descarregat + el nostre: aplicar «Tot el tema» i després, a «Temes» de MIUI, tornar a aplicar només
   les icones del tema descarregat (així conserva el seu .mra i la comprovació DRM no ho desfà).
 - Pas 4: «Imatge de fons a Configuració» (cap / foto 'foto-config' / el fons d'inici, «Enfosqueix»): substitueix els drawables
