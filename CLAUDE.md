@@ -90,6 +90,12 @@ Dues parts:
   /data/system/theme/, però al MIUI 14 global el giny «Classical clock» carrega sempre el seu propi mtz del sistema, i la
   llista de ginys només mostra rellotges de temes importats (BD del gestor; un .mrc/.mrm posat a mà a `.data/` no surt).
 
+## 1.6.0 (22/11/2026, publicada)
+- Estil «Marc de bronze» (`MarcBronze`, `METALLS.bronze`, `prim`: marc més prim i sense brillantor de vidre), copiat d'un tema
+  que l'usuari tenia al mòbil. Als estils amb marc, les apps fora del catàleg porten l'anell com a `icon_border` (+ `icon_mask`).
+  Provat al Mi 10T Lite amb el programa de Windows (icones originals a dins). «De bronze» també a l'editor d'estils.
+- L'avís d'actualització en obrir l'APK ja hi és (`XoriguerObliga`, en obrir i en tornar-hi cada hora).
+
 ## Pendent
 - Provar l'APK al mòbil (llista d'apps amb icones, desar, selector del gestor de temes): **publicada sense provar** (decisió de l'usuari).
 - Provar en altres models i HyperOS.
