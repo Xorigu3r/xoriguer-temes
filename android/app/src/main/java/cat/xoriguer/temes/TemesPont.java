@@ -190,9 +190,10 @@ public class TemesPont extends Plugin {
 
     /** Només les parts triades (Motor.flagsParts a www/js/motor.js): la resta del tema del telèfon no es toca. */
     private static void posaParts(Intent i, PluginCall call) {
-        Long f = call.getLong("flags", -1L);
-        if (f != null && f != -1L) {
-            i.putExtra("theme_apply_flags", (long) f);
+        // des de JS arriba com a Integer (4100) i call.getLong() el descarta: es llegeix del JSON (provat 22/11/2026)
+        long f = call.getData().optLong("flags", -1L);
+        if (f != -1L) {
+            i.putExtra("theme_apply_flags", f);
             i.putExtra("theme_remove_flags", 0L);
         }
     }
