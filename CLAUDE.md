@@ -74,6 +74,12 @@ Dues parts:
   NO canvien: `control_center_background_dim`, `status_bar_clock_color` (rellotge de la barra d'estat) i el rellotge de
   bloqueig (`clock_text_color`; MIUI 14 en tria el color segons el fons: caldria una pantalla de bloqueig MAML pròpia).
 
+## 1.4.0 (22/11/2026, compilada, no publicada)
+- Pantalla de bloqueig pròpia (MAML, component `lockscreen` + `plugin_config.xml`): rellotge d'imatges num_0..9/num_dot
+  en 5 estils (taronja, crema, or, contorn, fi), posició (posy %), alineació, mida, data i notificacions (targetes pissarra).
+  `config.xml` (posy, data) es pot canviar al mòbil amb el botó d'ajustos (MamlConfigSettings, maml_code=lockstyle).
+  Provat al Mi 10T Lite: es veu bé i lliscar amunt porta al PIN. Exemple estudiat: BrS v9 (miuithemer.com).
+
 ## Pendent
 - Provar l'APK al mòbil (llista d'apps amb icones, desar, selector del gestor de temes): **publicada sense provar** (decisió de l'usuari).
 - Provar en altres models i HyperOS.

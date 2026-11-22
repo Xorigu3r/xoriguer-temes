@@ -663,6 +663,173 @@
     return cv;
   }
 
+  // ------------------------------------------------------------ pantalla de bloqueig pròpia (MAML) amb rellotge
+  // Provat al Mi 10T Lite: component «lockscreen» amb advance/manifest.xml; el rellotge són imatges num_0..9 + num_dot.
+  const RELLOTGES = { taronja: 'Taronja', crema: 'Crema', or: 'Or', contorn: 'Contorn', fi: 'Fi' };
+  let fontRellotge = null;
+  async function carregaFont() {
+    if (fontRellotge) return fontRellotge;
+    try { const f = new FontFace('XtMontserrat', "url('marca/Montserrat-ExtraBold.ttf')"); await f.load(); document.fonts.add(f); } catch { /* de reserva */ }
+    fontRellotge = true; return true;
+  }
+  /** Imatges dels números (1080 d'amplada de referència). r: {estil, escala} -> {dig:[canvas x10], dos:canvas, w, h, wd} */
+  async function xifres(r) {
+    await carregaFont();
+    const mida = Math.round(300 * (r.escala || 1));
+    const fi = r.estil === 'fi';
+    const font = fi ? `200 ${mida}px "Segoe UI Light", "Roboto Light", "Roboto", sans-serif` : `${mida}px XtMontserrat, "Montserrat", sans-serif`;
+    const mesura = tela(10).getContext('2d'); mesura.font = font;
+    const wd = Math.ceil(Math.max(...[...'0123456789'].map((d) => mesura.measureText(d).width))) + Math.round(mida * 0.08);
+    const h = Math.round(mida * 1.12), wc = Math.round(mida * 0.36);
+    const fa = (t, w) => {
+      const c = tela(w, h), x = ctx2(c);
+      x.font = font; x.textAlign = 'center'; x.textBaseline = 'alphabetic';
+      const y = Math.round(mida * 0.98);
+      if (r.estil === 'contorn') {
+        x.lineWidth = Math.max(3, mida / 45); x.strokeStyle = t === ':' ? P.TAR_A : P.CREMA; x.strokeText(t, w / 2, y);
+        return c;
+      }
+      x.fillStyle = t === ':' && r.estil !== 'or' ? P.TAR_A : '#fff';
+      x.fillText(t, w / 2, y);
+      if (r.estil === 'taronja') return pinta(c, (xx, W2, H2) => degradat(xx, W2, H2, P.TAR_A, P.TAR_B));
+      if (r.estil === 'or') return daurat(c);
+      if (t !== ':') return pinta(c, P.CREMA);
+      return c;
+    };
+    const dig = [...'0123456789'].map((d) => fa(d, wd));
+    return { dig, dos: fa(':', wc), wd, wc, h };
+  }
+  /** Posicions (en coordenades de 1080 d'amplada) */
+  function lloc(r, xf) {
+    const T = 4 * xf.wd + xf.wc;
+    const x0 = r.alinea === 'esquerra' ? 70 : r.alinea === 'dreta' ? 1010 - T : Math.round(540 - T / 2);
+    return { T, x0, xs: [x0, x0 + xf.wd, x0 + 2 * xf.wd + xf.wc, x0 + 3 * xf.wd + xf.wc], xd: x0 + 2 * xf.wd };
+  }
+  /** Dibuixa el rellotge (hora actual) a sobre d'un fons de bloqueig, per a les vistes prèvies */
+  async function dibuixaRellotge(canvas, r) {
+    const xf = await xifres(r), L = lloc(r, xf), k = canvas.width / 1080, x = ctx2(canvas);
+    const ara = new Date(), hh = String(ara.getHours()).padStart(2, '0'), mm = String(ara.getMinutes()).padStart(2, '0');
+    const y = canvas.height * (r.posy / 100);
+    const ds = [hh[0], hh[1], mm[0], mm[1]];
+    x.save(); x.shadowColor = 'rgba(0,0,0,0.35)'; x.shadowBlur = 12 * k; x.shadowOffsetY = 4 * k;
+    ds.forEach((d, i) => x.drawImage(xf.dig[+d], L.xs[i] * k, y, xf.wd * k, xf.h * k));
+    x.drawImage(xf.dos, L.xd * k, y, xf.wc * k, xf.h * k);
+    x.restore();
+    if (r.data) {
+      x.fillStyle = P.CREMA; x.font = `${46 * k}px Roboto, "Segoe UI", sans-serif`;
+      x.textAlign = r.alinea === 'esquerra' ? 'left' : r.alinea === 'dreta' ? 'right' : 'center';
+      const dx = r.alinea === 'esquerra' ? L.x0 + 10 : r.alinea === 'dreta' ? L.x0 + L.T - 10 : 540;
+      x.fillText(ara.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' }), dx * k, y + (xf.h + 60) * k);
+    }
+  }
+  const escX = (s) => String(s).replace(/[<>&"']/g, (m) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' }[m]));
+  /** Component «lockscreen». r: {estil, escala, posy, alinea, data, llisca (text), notificacions} */
+  async function componentBloqueig(r) {
+    const xf = await xifres(r), L = lloc(r, xf);
+    const ya = '#screen_height*#posy/100';
+    const alin = r.alinea === 'esquerra' ? 'left' : r.alinea === 'dreta' ? 'right' : 'center';
+    const dx = r.alinea === 'esquerra' ? L.x0 + 10 : r.alinea === 'dreta' ? L.x0 + L.T - 10 : 540;
+    const man = `<?xml version="1.0" encoding="utf-8"?>
+<!-- Xoriguer Temes: pantalla de bloqueig amb rellotge propi -->
+<Lockscreen displayDesktop="false" frameRate="60" screenWidth="1080" version="2">
+  <VariableBinders>
+    <ContentProviderBinder columns="icon,title,content,time,info,subtext,key" countName="hasnotifications" name="data" uri="content://keyguard.notification/notifications">
+      <List name="notification_list"/>
+    </ContentProviderBinder>
+  </VariableBinders>
+  <Var name="hora" expression="ifelse(#time_format,#hour24,#hour12,#hour12,12)"/>
+  <Wallpaper/>
+  <Group x="0" y="#defaultScreen_y">
+    <Image src="time/num.png" srcid="#hora/10" x="${L.xs[0]}" y="${ya}"/>
+    <Image src="time/num.png" srcid="#hora%10" x="${L.xs[1]}" y="${ya}"/>
+    <Image src="time/num_dot.png" x="${L.xd}" y="${ya}"/>
+    <Image src="time/num.png" srcid="#minute/10" x="${L.xs[2]}" y="${ya}"/>
+    <Image src="time/num.png" srcid="#minute%10" x="${L.xs[3]}" y="${ya}"/>
+    <DateTime align="${alin}" color="#F6EFE2" format="EEEE, d MMMM" size="46" visibility="#data" x="${dx}" y="${ya}+${xf.h + 20}"/>
+    <Group visibility="#hasnotifications" x="0" y="${ya}+${xf.h + 130}">
+      <List align="center" data="icon:bitmap,title:string,content:string,time:string,info:string,subtext:string,key:int" maxHeight="${220 * 3}" name="notification_list" visibility="#hasnotifications" w="#screen_width" x="540" y="0">
+        <Item align="center" h="220" w="940" x="540" y="0">
+          <Button alignChildren="true" h="220" w="940" x="0" y="0">
+            <Normal><Rectangle alignV="center" cornerRadius="44" fillColor="#E627354A" h="196" w="940" y="98"/></Normal>
+            <Pressed><Rectangle alignV="center" cornerRadius="44" fillColor="#FF31405A" h="196" w="940" y="98"/></Pressed>
+            <Image align="center" alignV="center" h="64" name="notification_icon" w="64" x="80" y="62"/>
+            <Text alignV="center" color="#F6EFE2" h="54" marqueeSpeed="30" name="notification_title" size="42" w="600" x="134" y="62"/>
+            <Text alignV="center" color="#B9B2A5" h="48" marqueeSpeed="30" name="notification_content" size="36" w="820" x="50" y="134"/>
+            <Text align="right" alignV="center" color="#B9B2A5" name="notification_time" size="34" x="890" y="62"/>
+            <Triggers>
+              <Trigger action="up">
+                <IntentCommand action="com.miui.app.ExtraStatusBarManager.action_remove_keyguard_notification" broadcast="true">
+                  <Extra expression="#notification_list.key" name="com.miui.app.ExtraStatusBarManager.extra_notification_key" type="int"/>
+                  <Extra expression="#touch_begin_x { 900" name="com.miui.app.ExtraStatusBarManager.extra_notification_click" type="int"/>
+                </IntentCommand>
+              </Trigger>
+            </Triggers>
+          </Button>
+        </Item>
+        <AttrDataBinders>
+          <AttrDataBinder attr="bitmap" data="icon" target="notification_icon"/>
+          <AttrDataBinder attr="text" data="title" target="notification_title"/>
+          <AttrDataBinder attr="text" data="content" target="notification_content"/>
+          <AttrDataBinder attr="text" data="time" target="notification_time"/>
+        </AttrDataBinders>
+      </List>
+    </Group>
+  </Group>
+  <Text align="center" alignV="center" category="Charging" color="#FFA82E" format="%d%%" paras="#battery_level" size="40" x="540" y="#screen_height-200+#defaultScreen_y"/>
+  <Text align="center" alignV="center" color="#F6EFE2" size="40" textExp="'${escX(r.llisca || '')}'" x="540" y="#screen_height-120+#defaultScreen_y"/>
+  <Var expression="min(#touch_y-#touch_begin_y+50,0)*#desbloq+#tornada" name="defaultScreen_y"/>
+  <Var name="tornada">
+    <VariableAnimation initPause="true" loop="false">
+      <Item time="0" value="0"/>
+      <Item easeType="CubicEaseOut" time="100" value="min(#touch_y-#touch_begin_y+50,0)"/>
+      <Item time="400" value="0"/>
+    </VariableAnimation>
+  </Var>
+  <Button h="#screen_height" w="1080">
+    <Triggers>
+      <Trigger action="down"><VariableCommand expression="1" name="desbloq"/></Trigger>
+      <Trigger action="up,cancel">
+        <VariableCommand expression="0" name="desbloq"/>
+        <AnimationCommand command="play" target="tornada" condition="lt(#touch_begin_y-#touch_y,300)"/>
+        <ExternCommand command="unlock" condition="ge(#touch_begin_y-#touch_y,300)"/>
+      </Trigger>
+    </Triggers>
+  </Button>
+  <!-- botó per ajustar la posició des del mòbil (config.xml) -->
+  <Group x="110" y="#screen_height-120+#defaultScreen_y">
+    <Image align="center" alignV="center" src="lock/ajust.png"/>
+    <Button align="center" alignV="center" h="110" w="110">
+      <Triggers>
+        <Trigger action="up">
+          <IntentCommand action="android.intent.action.MAIN" class="miui.maml.MamlConfigSettings" package="com.android.thememanager">
+            <Extra expression="'lockstyle'" name="maml_code" type="string"/>
+          </IntentCommand>
+          <ExternCommand command="unlock" delay="300"/>
+        </Trigger>
+      </Triggers>
+    </Button>
+  </Group>
+</Lockscreen>
+`;
+    const config = `<Config>
+  <Group text="${escX(r.textos.grup)}">
+    <NumberInput text="${escX(r.textos.posicio)}" summary="${escX(r.textos.resum)}" id="posy" default="${Math.round(r.posy)}"/>
+    <CheckBox text="${escX(r.textos.data)}" id="data" default="${r.data ? 1 : 0}"/>
+  </Group>
+</Config>
+`;
+    const zl = new g.Zip();
+    zl.afegeix('advance/manifest.xml', man);
+    zl.afegeix('advance/config.xml', config);
+    for (let d = 0; d < 10; d++) zl.afegeix(`advance/time/num_${d}.png`, await aBytes(xf.dig[d]));
+    zl.afegeix('advance/time/num_dot.png', await aBytes(xf.dos));
+    // icona d'ajustos (Tabler «adjustments») en crema
+    const aj = await carregaImatge(svgURL('<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="#F6EFE2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/><path d="M6 4v4"/><path d="M6 12v8"/><path d="M10 16a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/><path d="M12 4v10"/><path d="M12 18v2"/><path d="M16 7a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/><path d="M18 4v1"/><path d="M18 9v11"/></svg>'));
+    const ca = tela(72); ctx2(ca).drawImage(aj, 0, 0);
+    zl.afegeix('advance/lock/ajust.png', await aBytes(ca));
+    return zl.bytes();
+  }
+
   // ------------------------------------------------------------ empaquetar
   const aBlob = (c, tipus, q) => new Promise((ok) => c.toBlob(ok, tipus, q));
   const aBytes = async (c, tipus, q) => new Uint8Array(await (await aBlob(c, tipus || 'image/png', q)).arrayBuffer());
@@ -689,6 +856,8 @@
     const inici = await fons(o.fons, o.W, o.H, false, o.fonsOpcions);
     const bloq = await fons(o.fons, o.W, o.H, true, o.fonsOpcions);
     const prev = await previa(inici, icones);
+    let bloqPrevia = bloq;   // la vista prèvia porta el rellotge; el fons de pantalla, no
+    if (o.rellotge) { bloqPrevia = tela(bloq.width, bloq.height); ctx2(bloqPrevia).drawImage(bloq, 0, 0); await dibuixaRellotge(bloqPrevia, o.rellotge); }
     prog(0.85, 'paquet');
 
     const zi = new g.Zip();
@@ -721,15 +890,19 @@
       zc.afegeix('theme_values.xml', tv); zc.afegeix('nightmode/theme_values.xml', tv);
       z.afegeix('miui.systemui.plugin', zc.bytes());
     }
+    if (o.rellotge) {   // pantalla de bloqueig pròpia amb el rellotge Xoriguer
+      z.afegeix('lockscreen', await componentBloqueig(o.rellotge));
+      z.afegeix('plugin_config.xml', '<?xml version="1.0" encoding="utf-8"?>\n<PluginConfig>\n  <lockscreen/>\n</PluginConfig>\n');
+    }
     z.afegeix('wallpaper/default_wallpaper.jpg', await aBytes(inici, 'image/jpeg', 0.9));
     z.afegeix('wallpaper/default_lock_wallpaper.jpg', await aBytes(bloq, 'image/jpeg', 0.9));
     const mitja = (c) => { const m = tela(Math.round(c.width / 2), Math.round(c.height / 2)); ctx2(m).drawImage(c, 0, 0, m.width, m.height); return m; };
     z.afegeix('preview/preview_icons_0.jpg', await aBytes(mitja(prev), 'image/jpeg', 0.85));
     z.afegeix('preview/preview_launcher_0.jpg', await aBytes(mitja(prev), 'image/jpeg', 0.85));
-    z.afegeix('preview/preview_lockscreen_0.jpg', await aBytes(mitja(bloq), 'image/jpeg', 0.85));
+    z.afegeix('preview/preview_lockscreen_0.jpg', await aBytes(mitja(bloqPrevia), 'image/jpeg', 0.85));
     prog(1, 'fet');
-    return { bytes: z.bytes(), previa: prev, bloqueig: bloq, icones: Object.keys(icones).length };
+    return { bytes: z.bytes(), previa: prev, bloqueig: bloqPrevia, icones: Object.keys(icones).length };
   }
 
-  g.Motor = { ESTILS, FONS, LOGOS, P, S, icona, fons, creaTema, carregaImatge, colorApp, registraEstil, treuEstil, registraFons, treuFons, previaCentre };
+  g.Motor = { ESTILS, FONS, LOGOS, P, S, icona, fons, creaTema, carregaImatge, colorApp, registraEstil, treuEstil, registraFons, treuFons, previaCentre, RELLOTGES, dibuixaRellotge };
 })(window);

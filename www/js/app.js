@@ -1,7 +1,7 @@
 /* Xoriguer Temes — interfície. */
 'use strict';
 (function () {
-  const VERSIO = '1.3.0';
+  const VERSIO = '1.4.0';
   const URL_VERSIO = 'https://xoriguer.dev/versions/temes/versio.json';
   const $ = (s) => document.querySelector(s);
   const T_ = (s, v) => I18N.t(s, v);
@@ -34,10 +34,40 @@
     dyInici: desat.dyInici || 0, dyBloq: desat.dyBloq || 0, escala: desat.escala || 1,
     W: 1080, H: 2400, apps: null, info: null, resultat: null,
     cc: Object.assign({ on: '#FFA82E', segon: '#F2650F', off: 'com_ara', icona: '#FFFFFF', barra: '#FFA82E', rellotge: '#F6EFE2' }, desat.cc || {}),
+    rl: Object.assign({ estil: 'taronja', posy: 20, alinea: 'centre', escala: 0.8, data: true }, desat.rl || {}),
   };
   function guarda() {
-    escriu('xt-opcions', { estil: E.estil, fons: E.fons, palFons: E.palFons, accent: E.accent, model: E.model, cc: E.cc,
+    escriu('xt-opcions', { estil: E.estil, fons: E.fons, palFons: E.palFons, accent: E.accent, model: E.model, cc: E.cc, rl: E.rl,
       dyInici: E.dyInici, dyBloq: E.dyBloq, escala: E.escala, llengua: desat.llengua || '', senseCarpeta: desat.senseCarpeta });
+  }
+
+
+  // ------------------------------------------------------------ pantalla de bloqueig (rellotge propi)
+  let blGen = 0, blTemps = null;
+  function pintaPreviaBloq() { clearTimeout(blTemps); blTemps = setTimeout(pintaPreviaBloqAra, 60); }
+  async function pintaPreviaBloqAra() {
+    const meu = ++blGen;
+    const c = $('#previa-bloq');
+    c.height = Math.round(c.width * E.H / E.W);
+    const f = await M.fons(M.FONS[E.fons] ? E.fons : 'LogotipOrTaronja', c.width, c.height, true, opcionsFons());
+    if (meu !== blGen) return;
+    const x = c.getContext('2d'); x.drawImage(f, 0, 0);
+    if ($('#rellotge').checked) await M.dibuixaRellotge(c, E.rl);
+  }
+  function pintaRellotge() {
+    const canvia = (k) => (v) => { E.rl[k] = v; guarda(); pintaPreviaBloq(); };
+    const posa = (sel, node) => { const d = $(sel); d.innerHTML = ''; d.append(node); };
+    posa('#rl-estil', segment(Object.entries(M.RELLOTGES), E.rl.estil, canvia('estil')));
+    posa('#rl-alinea', segment([['esquerra', 'Esquerra'], ['centre', 'Centre'], ['dreta', 'Dreta']], E.rl.alinea, canvia('alinea')));
+    const posy = $('#rl-posy'), esc = $('#rl-escala');
+    const etiq = () => { $('#o-rl-posy').textContent = E.rl.posy + '%'; $('#o-rl-escala').textContent = Math.round(E.rl.escala * 100) + '%'; };
+    posy.value = String(E.rl.posy); esc.value = String(Math.round(E.rl.escala * 100));
+    posy.oninput = () => { E.rl.posy = +posy.value; etiq(); guarda(); pintaPreviaBloq(); };
+    esc.oninput = () => { E.rl.escala = esc.value / 100; etiq(); guarda(); pintaPreviaBloq(); };
+    $('#rl-data').checked = !!E.rl.data;
+    $('#rl-data').onchange = () => { E.rl.data = $('#rl-data').checked; guarda(); pintaPreviaBloq(); };
+    $('#rellotge').onchange = () => { $('#rellotge-opcions').hidden = !$('#rellotge').checked; pintaPreviaBloq(); };
+    etiq(); pintaPreviaBloq();
   }
 
   // ------------------------------------------------------------ Centre de control
@@ -326,6 +356,7 @@
   async function pintaPreviaFons() {
     const meu = ++previaGen;
     if ($('#previa-centre')) pintaPreviaCentre();
+    if ($('#previa-bloq')) pintaPreviaBloq();
     const cont = $('#previa-fons');
     const w = 150, h = Math.round(150 * E.H / E.W);
     const [a, b] = await Promise.all([M.fons(E.fons, w, h, false, opcionsFons()), M.fons(E.fons, w, h, true, opcionsFons())]);
@@ -492,6 +523,7 @@
         plenes: !$('#l-plenes').hidden && $('#plenes').checked,
         sistema: $('#sistema').checked, paleta: { fons: pf.fons, targeta: pf.targeta, accent: pa.c },
         centre: $('#centre').checked ? { ...E.cc } : null,
+        rellotge: $('#rellotge').checked ? { ...E.rl, llisca: T_('Llisca amunt per desbloquejar'), textos: { grup: 'Xoriguer', posicio: T_('Posició del rellotge (% de l’alçada)'), resum: T_('0 = a dalt de tot, 60 = cap a baix'), data: T_('Mostra la data') } } : null,
         progres: (f) => { barra.style.width = Math.round(f * 100) + '%'; },
       });
       E.resultat = { ...r, nom: nomFitxer() };
@@ -557,6 +589,7 @@
     pintaXips('#pal-fons', PAL_FONS, 'palFons', (p) => `linear-gradient(135deg,${p.targeta},${p.fons})`);
     pintaXips('#pal-accent', PAL_ACCENT, 'accent', (p) => p.c);
     pintaCentre();
+    pintaRellotge();
     aplicaModel();
     buscaTelefon();
   }

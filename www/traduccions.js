@@ -191,6 +191,25 @@
     ['Hora i data', 'Hora y fecha', 'Heure et date', 'Time and date'],
     ['Transparents (com ara)', 'Transparentes (como ahora)', 'Transparents (comme maintenant)', 'Transparent (as now)'],
     ['Pissarra fosc', 'Pizarra oscura', 'Ardoise foncée', 'Dark slate'],
+    // ---------- 1.4
+    ['Pantalla de bloqueig', 'Pantalla de bloqueo', 'Écran de verrouillage', 'Lock screen'],
+    ['Rellotge Xoriguer a la pantalla de bloqueig', 'Reloj Xoriguer en la pantalla de bloqueo', 'Horloge Xoriguer sur l’écran de verrouillage', 'Xoriguer clock on the lock screen'],
+    ["Substitueix la pantalla de bloqueig de MIUI: hi ha el rellotge, la data i les notificacions; no hi ha els controls de música ni la drecera de la càmera. Es desbloqueja lliscant amunt (i després el PIN o l'empremta, com sempre).",
+      'Sustituye la pantalla de bloqueo de MIUI: tiene el reloj, la fecha y las notificaciones; no tiene los controles de música ni el acceso a la cámara. Se desbloquea deslizando hacia arriba (y después el PIN o la huella, como siempre).',
+      'Remplace l’écran de verrouillage de MIUI : horloge, date et notifications ; sans les commandes de musique ni le raccourci de l’appareil photo. On déverrouille en glissant vers le haut (puis le code ou l’empreinte, comme d’habitude).',
+      'Replaces the MIUI lock screen: it has the clock, date and notifications; no music controls or camera shortcut. Swipe up to unlock (then your PIN or fingerprint, as usual).'],
+    ['Estil del rellotge', 'Estilo del reloj', 'Style de l’horloge', 'Clock style'],
+    ['Alineació', 'Alineación', 'Alignement', 'Alignment'],
+    ['Posició', 'Posición', 'Position', 'Position'],
+    ['Esquerra', 'Izquierda', 'Gauche', 'Left'],
+    ['Centre', 'Centro', 'Centre', 'Centre'],
+    ['Dreta', 'Derecha', 'Droite', 'Right'],
+    ['Contorn', 'Contorno', 'Contour', 'Outline'],
+    ['Fi', 'Fino', 'Fin', 'Thin'],
+    ['Mostra la data', 'Mostrar la fecha', 'Afficher la date', 'Show the date'],
+    ['Llisca amunt per desbloquejar', 'Desliza hacia arriba para desbloquear', 'Glissez vers le haut pour déverrouiller', 'Swipe up to unlock'],
+    ['Posició del rellotge (% de l’alçada)', 'Posición del reloj (% de la altura)', 'Position de l’horloge (% de la hauteur)', 'Clock position (% of height)'],
+    ['0 = a dalt de tot, 60 = cap a baix', '0 = arriba del todo, 60 = hacia abajo', '0 = tout en haut, 60 = vers le bas', '0 = at the very top, 60 = further down'],
   ];
   const TR = { es: {}, fr: {}, en: {} };
   const norm = (s) => String(s).replace(/\s+/g, ' ').trim();
