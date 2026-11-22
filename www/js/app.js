@@ -1,7 +1,7 @@
 /* Xoriguer Temes — interfície. */
 'use strict';
 (function () {
-  const VERSIO = '2.0.1';
+  const VERSIO = '2.1.0';
   const URL_VERSIO = 'https://xoriguer.dev/versions/temes/versio.json';
   const $ = (s) => document.querySelector(s);
   const T_ = (s, v) => I18N.t(s, v);

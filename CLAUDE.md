@@ -135,7 +135,7 @@ Dues parts:
   només amb «Tot el tema»); conservar les icones del tema actual des de Windows (`MIUI/theme/.data/content/icons/<uuid>.mrc`,
   mateixa mida que /data/system/theme/icons).
 
-## Després de la 2.0.1 (23/11/2026, sense publicar)
+## 2.1.0 (23/11/2026, publicada)
 - Llistes de Configuració semitransparents (provat al Mi 10T Lite, «es veu bé»): les llistes fan servir
   `miuix_preference_list_item_bg_color_dark` → `@color/miuix_appcompat_black`; amb imatge, NOMÉS a `nightmode/theme_values.xml`
   de com.android.settings: negre, llistes i fons (rol f) = pissarra amb alfa 8c.
