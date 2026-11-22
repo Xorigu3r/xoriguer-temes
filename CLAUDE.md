@@ -105,7 +105,7 @@ Dues parts:
 - A la vista prèvia del bloqueig: arrossegar mou el rellotge (`alinea:'lliure'`, `cx`) i les cantonades el fan més gran o
   més petit (`lligaArrossega` a app.js). Mida per defecte del digital 0.55 (mitja pantalla; migració `rlMida`).
 
-## 2.0 (en curs, 22/11/2026, sense publicar)
+## 2.0.0 (22/11/2026, publicada)
 - Assistent pas a pas (demanat per l'usuari: «més senzill, com MIUI»): 1 Icones, 2 Fons, 3 Bloqueig, 4 Colors, 5 Aplica
   (`vesA()` a app.js, barra fixa Enrere/Següent). Opcions avançades dins de `<details class="mes">`.
 - Fons = base + logo per separat (`E.base`: FalcoOr/Falco/Pissarra/Taronja/Crema/foto, `E.logo`, `E.logoBloq`; `Motor.BASES`).
