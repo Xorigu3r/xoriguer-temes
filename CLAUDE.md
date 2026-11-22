@@ -96,10 +96,12 @@ Dues parts:
   Provat al Mi 10T Lite amb el programa de Windows (icones originals a dins). «De bronze» també a l'editor d'estils.
 - L'avís d'actualització en obrir l'APK ja hi és (`XoriguerObliga`, en obrir i en tornar-hi cada hora).
 
-## 1.7.0 (22/11/2026, publicada sense provar al mòbil)
+## 1.7.0 (22/11/2026, publicada; «Luxe daurat» provat després al Mi 10T Lite: es veu bé, agulles i data OK)
+- Per provar només el rellotge sense tocar icones ni fons: mtz amb description.xml + lockscreen + plugin_config.xml +
+  el fons de bloqueig actual, i `--el theme_apply_flags 4100 --el theme_remove_flags 0` (4096 sol esborra el fons de bloqueig).
 - Rellotges analògics de luxe per a la pantalla de bloqueig: «Luxe daurat» i «Luxe platejat» (`RL_CFG.tipus:'agulles'`,
   `agulles()` a motor.js): esfera de carboni, índexs, falcó, caixetes de dia i dia de la setmana (DateTime `d` i `EEE`),
-  agulles com a Image amb `rotation` + `pivotX/pivotY` (#hour24, #minute, #second). **Pendent provar al mòbil** que giren.
+  agulles com a Image amb `rotation` + `pivotX/pivotY` (#hour24, #minute, #second): giren bé al mòbil.
 - A la vista prèvia del bloqueig: arrossegar mou el rellotge (`alinea:'lliure'`, `cx`) i les cantonades el fan més gran o
   més petit (`lligaArrossega` a app.js). Mida per defecte del digital 0.55 (mitja pantalla; migració `rlMida`).
 
