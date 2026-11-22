@@ -612,6 +612,57 @@
     return l.join('\n');
   }
 
+  // ------------------------------------------------------------ Centre de control
+  /** c: {on, segon, off ('com_ara'|color), icona, barra, rellotge} (colors #RRGGBB) -> {nom_recurs: '#aarrggbb'} */
+  const argb = (h, a) => '#' + (a || 'ff') + h.replace('#', '').slice(-6).toLowerCase();
+  function colorsCentre(c) {
+    const r = {
+      qs_card_enabled_color: argb(c.on), qs_enabled_color: argb(c.on), control_center_universal_enabled_color: argb(c.on),
+      qs_card_cellular_color: argb(c.segon), qs_card_flashlight_color: argb(c.segon),
+      qs_icon_enabled_color: argb(c.icona), qs_tile_icon_enabled_color: argb(c.icona), control_center_universal_icon_color: argb(c.icona),
+      toggle_slider_progress_color: argb(c.barra),
+      header_clock_text_color: argb(c.rellotge), header_date_text_color: argb(c.rellotge, 'bb'),
+    };
+    if (c.off && c.off !== 'com_ara') {
+      for (const n of ['qs_card_disabled_color', 'qs_disabled_color', 'control_center_universal_disabled_color']) r[n] = argb(c.off, 'cc');
+    }
+    if (lluminositat(hex2rgb(c.on)) > 170) {   // botons clars: text fosc perquè es llegeixi
+      r.qs_card_primary_text_enabled_color = argb(P.FONS); r.qs_card_secondary_text_enabled_color = argb(P.FONS, 'cc');
+    }
+    return r;
+  }
+  function themeValuesDirectes(colors) {
+    return ['<?xml version="1.0" encoding="utf-8"?>', '<MIUI_Theme_Values>',
+      ...Object.entries(colors).map(([n, c]) => `    <color name="${n}">${c}</color>`), '</MIUI_Theme_Values>', ''].join('\n');
+  }
+  /** Dibuix aproximat del Centre de control amb aquests colors (vista prèvia) */
+  function previaCentre(c, w, h, fonsCanvas) {
+    const cv = tela(w, h), x = ctx2(cv), u = w / 432;
+    if (fonsCanvas) { x.filter = `blur(${Math.round(14 * u)}px)`; x.drawImage(fonsCanvas, 0, 0, w, h); x.filter = 'none'; }
+    else { x.fillStyle = degradat(x, w, h, P.FONS_A, P.FONS_B); x.fillRect(0, 0, w, h); }
+    x.fillStyle = 'rgba(0,0,0,0.3)'; x.fillRect(0, 0, w, h);
+    x.fillStyle = c.rellotge; x.font = `300 ${54 * u}px Roboto, "Segoe UI", sans-serif`; x.fillText('8:03', 34 * u, 150 * u);
+    x.globalAlpha = 0.75; x.font = `${17 * u}px Roboto, "Segoe UI", sans-serif`; x.fillText('Dg, 22 nov', 150 * u, 142 * u); x.globalAlpha = 1;
+    const offCol = c.off && c.off !== 'com_ara' ? rgba(hex2rgb(c.off), 0.8) : 'rgba(255,255,255,0.15)';
+    const card = (y, col) => { x.fillStyle = col; x.beginPath(); x.roundRect(34 * u, y * u, 174 * u, 96 * u, 22 * u); x.fill(); };
+    card(178, c.on); card(292, c.segon);
+    const tx = lluminositat(hex2rgb(c.on)) > 170 ? P.FONS : '#FFFFFF';
+    x.fillStyle = tx; x.font = `600 ${16 * u}px Roboto, "Segoe UI", sans-serif`; x.fillText('Wi‑Fi', 96 * u, 222 * u);
+    x.fillStyle = lluminositat(hex2rgb(c.segon)) > 170 ? P.FONS : '#FFFFFF'; x.fillText('Dades', 96 * u, 336 * u);
+    for (const [cx, p] of [[224, 0.55], [320, 0.12]]) {   // barres verticals
+      x.fillStyle = 'rgba(255,255,255,0.15)'; x.beginPath(); x.roundRect(cx * u, 178 * u, 78 * u, 210 * u, 22 * u); x.fill();
+      x.save(); x.beginPath(); x.roundRect(cx * u, 178 * u, 78 * u, 210 * u, 22 * u); x.clip();
+      x.fillStyle = c.barra; x.fillRect(cx * u, (178 + 210 * (1 - p)) * u, 78 * u, 210 * p * u); x.restore();
+    }
+    const on = [1, 0, 1, 0, 0, 0, 0, 1];
+    for (let i = 0; i < 8; i++) {
+      const cx = (70 + (i % 4) * 96) * u, cy = (446 + Math.floor(i / 4) * 116) * u;
+      x.fillStyle = on[i] ? c.on : offCol; x.beginPath(); x.arc(cx, cy, 36 * u, 0, Math.PI * 2); x.fill();
+      x.fillStyle = on[i] ? c.icona : '#FFFFFF'; x.beginPath(); x.arc(cx, cy, 11 * u, 0, Math.PI * 2); x.fill();
+    }
+    return cv;
+  }
+
   // ------------------------------------------------------------ empaquetar
   const aBlob = (c, tipus, q) => new Promise((ok) => c.toBlob(ok, tipus, q));
   const aBytes = async (c, tipus, q) => new Uint8Array(await (await aBlob(c, tipus || 'image/png', q)).arrayBuffer());
@@ -665,6 +716,11 @@
         z.afegeix(paq, zc.bytes());
       }
     }
+    if (o.centre) {   // Centre de control de MIUI 14 (miui.systemui.plugin): provat al Mi 10T Lite
+      const zc = new g.Zip(), tv = themeValuesDirectes(colorsCentre(o.centre));
+      zc.afegeix('theme_values.xml', tv); zc.afegeix('nightmode/theme_values.xml', tv);
+      z.afegeix('miui.systemui.plugin', zc.bytes());
+    }
     z.afegeix('wallpaper/default_wallpaper.jpg', await aBytes(inici, 'image/jpeg', 0.9));
     z.afegeix('wallpaper/default_lock_wallpaper.jpg', await aBytes(bloq, 'image/jpeg', 0.9));
     const mitja = (c) => { const m = tela(Math.round(c.width / 2), Math.round(c.height / 2)); ctx2(m).drawImage(c, 0, 0, m.width, m.height); return m; };
@@ -675,5 +731,5 @@
     return { bytes: z.bytes(), previa: prev, bloqueig: bloq, icones: Object.keys(icones).length };
   }
 
-  g.Motor = { ESTILS, FONS, LOGOS, P, S, icona, fons, creaTema, carregaImatge, colorApp, registraEstil, treuEstil, registraFons, treuFons };
+  g.Motor = { ESTILS, FONS, LOGOS, P, S, icona, fons, creaTema, carregaImatge, colorApp, registraEstil, treuEstil, registraFons, treuFons, previaCentre };
 })(window);

@@ -177,7 +177,22 @@
       'En los estilos con marco metálico, el icono original de cada app dentro (en lugar del dibujo Xoriguer)',
       'Dans les styles à cadre métallique, l’icône d’origine de chaque appli à l’intérieur (au lieu du dessin Xoriguer)',
       'In the metal-frame styles, each app’s original icon inside (instead of the Xoriguer symbol)'],
-  ];  const TR = { es: {}, fr: {}, en: {} };
+    // ---------- 1.3
+    ['Centre de control', 'Centro de control', 'Centre de contrôle', 'Control centre'],
+    ['Personalitza el Centre de control (MIUI 14): Wi‑Fi, dades, brillantor, so i la resta de botons',
+      'Personaliza el Centro de control (MIUI 14): Wi‑Fi, datos, brillo, sonido y el resto de botones',
+      'Personnalisez le Centre de contrôle (MIUI 14) : Wi‑Fi, données, luminosité, son et les autres boutons',
+      'Customise the Control centre (MIUI 14): Wi‑Fi, data, brightness, sound and the other buttons'],
+    ['Botons encesos', 'Botones activados', 'Boutons activés', 'Buttons on'],
+    ['Dades mòbils i llanterna', 'Datos móviles y linterna', 'Données mobiles et lampe', 'Mobile data and torch'],
+    ['Botons apagats', 'Botones desactivados', 'Boutons désactivés', 'Buttons off'],
+    ['Icones dels botons encesos', 'Iconos de los botones activados', 'Icônes des boutons activés', 'Icons on active buttons'],
+    ['Barres de brillantor i volum', 'Barras de brillo y volumen', 'Barres de luminosité et de volume', 'Brightness and volume bars'],
+    ['Hora i data', 'Hora y fecha', 'Heure et date', 'Time and date'],
+    ['Transparents (com ara)', 'Transparentes (como ahora)', 'Transparents (comme maintenant)', 'Transparent (as now)'],
+    ['Pissarra fosc', 'Pizarra oscura', 'Ardoise foncée', 'Dark slate'],
+  ];
+  const TR = { es: {}, fr: {}, en: {} };
   const norm = (s) => String(s).replace(/\s+/g, ' ').trim();
   for (const [ca, es, fr, en] of F) { const k = norm(ca); TR.es[k] = es; TR.fr[k] = fr; TR.en[k] = en; }
   g.TR = TR;

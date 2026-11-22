@@ -116,3 +116,4 @@ input[type=text] { width: 100%; }
 .previes-mini figcaption { font-size: .78rem; color: var(--suau); margin-top: 4px; }
 .quant { overflow: hidden; margin-bottom: 4px; }
 .cos-modal p { margin: 0 0 10px; }
+.previa-centre { display: block; width: min(260px, 70%); margin: 10px auto 4px; border-radius: 22px; border: 1px solid var(--linia); }

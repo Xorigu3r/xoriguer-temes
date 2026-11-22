@@ -67,6 +67,13 @@ Dues parts:
   bisellat, interior brillant amb el color de l'app. Opció «plenes»: la icona original de cada app a dins (Android).
   Marc també a l'editor d'estils (`cfg.marc`).
 
+## 1.3.0 (22/11/2026, compilada, no publicada)
+- Apartat «Centre de control» (MIUI 14, el nou, `miui.systemui.plugin`): provat amb colors exagerats al Mi 10T Lite.
+  SÍ canvien: `qs_card_enabled_color` (targeta Wi-Fi), `qs_card_cellular_color` (dades), `qs_enabled_color`/`qs_disabled_color`
+  (botons rodons), `qs_icon_enabled_color`, `toggle_slider_progress_color` (barres), `header_clock_text_color`/`header_date_text_color`.
+  NO canvien: `control_center_background_dim`, `status_bar_clock_color` (rellotge de la barra d'estat) i el rellotge de
+  bloqueig (`clock_text_color`; MIUI 14 en tria el color segons el fons: caldria una pantalla de bloqueig MAML pròpia).
+
 ## Pendent
 - Provar l'APK al mòbil (llista d'apps amb icones, desar, selector del gestor de temes): **publicada sense provar** (decisió de l'usuari).
 - Provar en altres models i HyperOS.

@@ -72,9 +72,24 @@
       <div id="pal-accent" class="xips"></div>
     </section>
 
-    <!-- 5. crear -->
+    <!-- 5. centre de control -->
     <section class="targeta">
-      <h2><span class="num">5</span><span>Crea el tema</span></h2>
+      <h2><span class="num">5</span><span>Centre de control</span></h2>
+      <label class="check"><input type="checkbox" id="centre" checked> Personalitza el Centre de control (MIUI 14): Wi‑Fi, dades, brillantor, so i la resta de botons</label>
+      <div id="centre-opcions">
+        <canvas id="previa-centre" class="previa-centre" width="432" height="660"></canvas>
+        <div class="sub">Botons encesos</div><div id="cc-on"></div>
+        <div class="sub">Dades mòbils i llanterna</div><div id="cc-segon"></div>
+        <div class="sub">Botons apagats</div><div id="cc-off"></div>
+        <div class="sub">Icones dels botons encesos</div><div id="cc-icona"></div>
+        <div class="sub">Barres de brillantor i volum</div><div id="cc-barra"></div>
+        <div class="sub">Hora i data</div><div id="cc-rellotge"></div>
+      </div>
+    </section>
+
+    <!-- 6. crear -->
+    <section class="targeta">
+      <h2><span class="num">6</span><span>Crea el tema</span></h2>
       <label class="camp">Nom del tema <input id="nom" maxlength="40"></label>
       <button id="b-crea" class="princ">Crea el tema</button>
       <div id="progres" class="progres" hidden><div></div></div>

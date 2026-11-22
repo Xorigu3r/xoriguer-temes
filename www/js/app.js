@@ -1,7 +1,7 @@
 /* Xoriguer Temes — interfície. */
 'use strict';
 (function () {
-  const VERSIO = '1.2.0';
+  const VERSIO = '1.3.0';
   const URL_VERSIO = 'https://xoriguer.dev/versions/temes/versio.json';
   const $ = (s) => document.querySelector(s);
   const T_ = (s, v) => I18N.t(s, v);
@@ -33,10 +33,33 @@
     model: desat.model || 'M2007J17G',
     dyInici: desat.dyInici || 0, dyBloq: desat.dyBloq || 0, escala: desat.escala || 1,
     W: 1080, H: 2400, apps: null, info: null, resultat: null,
+    cc: Object.assign({ on: '#FFA82E', segon: '#F2650F', off: 'com_ara', icona: '#FFFFFF', barra: '#FFA82E', rellotge: '#F6EFE2' }, desat.cc || {}),
   };
   function guarda() {
-    escriu('xt-opcions', { estil: E.estil, fons: E.fons, palFons: E.palFons, accent: E.accent, model: E.model,
+    escriu('xt-opcions', { estil: E.estil, fons: E.fons, palFons: E.palFons, accent: E.accent, model: E.model, cc: E.cc,
       dyInici: E.dyInici, dyBloq: E.dyBloq, escala: E.escala, llengua: desat.llengua || '', senseCarpeta: desat.senseCarpeta });
+  }
+
+  // ------------------------------------------------------------ Centre de control
+  let ccGen = 0;
+  async function pintaPreviaCentre() {
+    const meu = ++ccGen;
+    const f = await M.fons(M.FONS[E.fons] ? E.fons : 'LogotipOrTaronja', 216, Math.round(216 * E.H / E.W), false, opcionsFons());
+    if (meu !== ccGen) return;
+    const c = $('#previa-centre');
+    c.getContext('2d').drawImage(M.previaCentre(E.cc, c.width, c.height, f), 0, 0);
+  }
+  function pintaCentre() {
+    const canvia = (k) => (v) => { E.cc[k] = v; guarda(); pintaPreviaCentre(); };
+    const posa = (sel, node) => { const d = $(sel); d.innerHTML = ''; d.append(node); };
+    posa('#cc-on', mostres(E.cc.on, canvia('on')));
+    posa('#cc-segon', mostres(E.cc.segon, canvia('segon')));
+    posa('#cc-off', segment([['com_ara', 'Transparents (com ara)'], ['#31405A', 'Pissarra'], ['#1E2A3B', 'Pissarra fosc']], E.cc.off, canvia('off')));
+    posa('#cc-icona', segment([['#FFFFFF', 'Blanc'], ['#F6EFE2', 'Crema'], ['#1E2A3B', 'Pissarra']], E.cc.icona, canvia('icona')));
+    posa('#cc-barra', mostres(E.cc.barra, canvia('barra')));
+    posa('#cc-rellotge', mostres(E.cc.rellotge, canvia('rellotge')));
+    $('#centre').onchange = () => { $('#centre-opcions').hidden = !$('#centre').checked; };
+    pintaPreviaCentre();
   }
   const opcionsFons = () => ({ dyInici: E.dyInici, dyBloq: E.dyBloq, escala: E.escala });
 
@@ -302,6 +325,7 @@
   let previaGen = 0;
   async function pintaPreviaFons() {
     const meu = ++previaGen;
+    if ($('#previa-centre')) pintaPreviaCentre();
     const cont = $('#previa-fons');
     const w = 150, h = Math.round(150 * E.H / E.W);
     const [a, b] = await Promise.all([M.fons(E.fons, w, h, false, opcionsFons()), M.fons(E.fons, w, h, true, opcionsFons())]);
@@ -467,6 +491,7 @@
         apps, originals: !$('#l-originals').hidden && $('#originals').checked,
         plenes: !$('#l-plenes').hidden && $('#plenes').checked,
         sistema: $('#sistema').checked, paleta: { fons: pf.fons, targeta: pf.targeta, accent: pa.c },
+        centre: $('#centre').checked ? { ...E.cc } : null,
         progres: (f) => { barra.style.width = Math.round(f * 100) + '%'; },
       });
       E.resultat = { ...r, nom: nomFitxer() };
@@ -531,6 +556,7 @@
     pintaEstils();
     pintaXips('#pal-fons', PAL_FONS, 'palFons', (p) => `linear-gradient(135deg,${p.targeta},${p.fons})`);
     pintaXips('#pal-accent', PAL_ACCENT, 'accent', (p) => p.c);
+    pintaCentre();
     aplicaModel();
     buscaTelefon();
   }
