@@ -110,12 +110,17 @@ Dues parts:
   (`vesA()` a app.js, barra fixa Enrere/Següent). Opcions avançades dins de `<details class="mes">`.
 - Fons = base + logo per separat (`E.base`: FalcoOr/Falco/Pissarra/Taronja/Crema/foto, `E.logo`, `E.logoBloq`; `Motor.BASES`).
   La foto de l'usuari és a IndexedDB amb la clau 'foto'. Es registra com a fons '_tria'. L'editor de fons propis ja no hi és (migració de `xt-fons`).
-- Pas 5: «Què vols canviar al telèfon?» (icones, fons, bloqueig, colors) → el .mtz porta només aquestes parts i s'aplica amb
-  `Motor.flagsParts` (theme_apply_flags; TemesPont.posaParts, main.js). Icones sol = 8 i bloqueig sol = 4100 (provat);
-  **les combinacions (1 + flags) encara no estan provades al mòbil**.
+- Pas 5: «Tot el tema» / «Només les icones» (flags 8, **sense provar al mòbil**) / «Només la pantalla de bloqueig» (4100, provat).
+  `Motor.flagsParts`, TemesPont.posaParts, main.js. Les barreges amb el bit 1 (p. ex. 5 = 1|4) **esborren el fons d'inici**
+  (provat 22/11/2026): per això no n'hi ha.
 - Velocitat: les icones (el 85% del temps) es preparen d'amagat en triar l'estil (`Motor.preparaIcones`, cridat per
   `preparaIcones()` a app.js) i es guarden com a PNG a la memòria (promeses compartides) i a IndexedDB (magatzem 'icones',
   clau `VER_IC|estil|paquet|...`; **canvia `VER_IC` si canvies el dibuix de les icones**). Ordinador: 3,8 s → 0,6 s.
+- **Al WebView d'Android `canvas.toBlob` triga ~4 s per imatge**: `aBytes` fa servir `toDataURL` (2 ms). Mi 10T Lite, 109 apps:
+  >2 min → 6,7 s (creant de seguida) i 1 s (icones ja preparades).
+- Mòbil apaïsat (`max-height: 520px`): la capçalera i els passos no són fixos.
+- Provar l'app al mòbil des de l'ordinador: compilar amb `"webContentsDebuggingEnabled": true` (android de capacitor.config.json,
+  NOMÉS per provar), `adb forward tcp:9444 localabstract:webview_devtools_remote_<pid>` i CDP. Tornar a instal·lar l'APK normal.
 - Per què no es podia triar el rellotge de luxe al mòbil: la vista prèvia del bloqueig omplia la pantalla i amb `touch-action:none`
   no es podia fer lliscar fins a la galeria. Ara la galeria va abans i la vista prèvia és petita.
 

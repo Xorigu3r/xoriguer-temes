@@ -37,7 +37,7 @@
     rl: Object.assign({ estil: 'taronja', posy: 20, alinea: 'centre', escala: 0.55, data: true }, desat.rl || {}),
     // fons (2.0): una base i un logo a sobre, per separat
     base: desat.base || '', logo: desat.logo || '', logoBloq: !!desat.logoBloq,
-    parts: Object.assign({ icones: true, fons: true, bloqueig: true, colors: true }, desat.parts || {}),
+    parts: { icones: true, fons: true, bloqueig: true, colors: true },   // no es desa: cada cop comença amb «Tot el tema»
     pas: 1,
   };
   // de les versions 1.x: el fons era una sola peça (fons + logo); el convertim a base + logo
@@ -52,7 +52,7 @@
   if (!desat.rlMida) { if (E.rl.escala === 0.8) E.rl.escala = 0.55; desat.rlMida = 1; }
   function guarda() {
     escriu('xt-opcions', { estil: E.estil, fons: E.fons, palFons: E.palFons, accent: E.accent, model: E.model, cc: E.cc, rl: E.rl,
-      dyInici: E.dyInici, dyBloq: E.dyBloq, escala: E.escala, base: E.base, logo: E.logo, logoBloq: E.logoBloq, parts: E.parts, llengua: desat.llengua || '', senseCarpeta: desat.senseCarpeta, rlMida: 1 });
+      dyInici: E.dyInici, dyBloq: E.dyBloq, escala: E.escala, base: E.base, logo: E.logo, logoBloq: E.logoBloq, llengua: desat.llengua || '', senseCarpeta: desat.senseCarpeta, rlMida: 1 });
   }
 
 
@@ -627,9 +627,11 @@
     const n = ($('#nom').value || 'Xoriguer').normalize('NFKD').replace(/[^\w -]/g, '').trim().replace(/\s+/g, '-');
     return (n || 'Xoriguer') + '.mtz';
   }
+  // Només opcions provades al Mi 10T Lite: tot (-1), només icones (8), només bloqueig (4100). Les barreges amb el bit 1
+  // esborren el fons d'inici (provat el 22/11/2026), per això no n'hi ha.
   function llegeixParts() {
-    for (const k of ['icones', 'fons', 'bloqueig', 'colors']) E.parts[k] = $('#part-' + k).checked;
-    guarda();
+    const a = (document.querySelector('input[name=abast]:checked') || {}).value || 'tot';
+    E.parts = { icones: a === 'tot' || a === 'icones', fons: a === 'tot', bloqueig: a === 'tot' || a === 'bloqueig', colors: a === 'tot' };
   }
   async function crea() {
     $('#resultat').hidden = true; $('#missatge').textContent = ''; $('#ajuda-aplica').hidden = true;
@@ -667,7 +669,6 @@
   }
   async function fes() {
     llegeixParts();
-    if (!Object.values(E.parts).some(Boolean)) { alert(T_('Marca almenys una cosa per canviar.')); return; }
     const b = $('#b-fes'); b.disabled = true;
     try {
       if (!(await crea())) return;
@@ -722,7 +723,7 @@
     M.posaMagatzem({ agafa: (k) => IDB.agafa(k, 'icones'), posa: (k, v) => IDB.posa(k, v, 'icones') });
     IDB.netejaIcones(M.VER_IC).catch(() => {});
     $('#originals').addEventListener('change', preparaIcones); $('#plenes').addEventListener('change', preparaIcones);
-    for (const k of ['icones', 'fons', 'bloqueig', 'colors']) { $('#part-' + k).checked = E.parts[k] !== false; $('#part-' + k).onchange = llegeixParts; }
+    document.querySelectorAll('input[name=abast]').forEach((r) => { r.onchange = llegeixParts; });
     document.querySelectorAll('#passos button').forEach((b) => { b.onclick = () => vesA(+b.dataset.pas); });
     $('#b-enrere').onclick = () => vesA(E.pas - 1);
     $('#b-seguent').onclick = () => vesA(E.pas + 1);

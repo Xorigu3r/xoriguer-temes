@@ -138,6 +138,14 @@ main { padding-bottom: 110px; }
   border-top: 1px solid var(--linia); }
 .navega button { flex: 1; max-width: 474px; font-size: 1rem; padding: 13px; }
 .navega button[hidden] + button { margin-left: auto; }
+@media (max-height: 520px) {   /* mòbil apaïsat: les barres no poden ocupar tota la pantalla */
+  .capcal, .passos { position: static; }
+  .capcal { padding-top: 6px; padding-bottom: 6px; }
+  .passos button b { width: 24px; height: 24px; }
+  .navega { padding-top: 6px; padding-bottom: 6px; }
+  .navega button { padding: 8px; }
+  main { padding-bottom: 80px; }
+}
 details.mes { margin-top: 14px; border-top: 1px solid var(--linia); padding-top: 10px; }
 details.mes summary { cursor: pointer; color: var(--taronja); font-size: .9rem; padding: 4px 0; list-style-position: inside; }
 .parts { display: grid; gap: 2px; }

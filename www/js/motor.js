@@ -1115,8 +1115,13 @@ ${rellotgeXml}
   }
 
   // ------------------------------------------------------------ empaquetar
-  const aBlob = (c, tipus, q) => new Promise((ok) => c.toBlob(ok, tipus, q));
-  const aBytes = async (c, tipus, q) => new Uint8Array(await (await aBlob(c, tipus || 'image/png', q)).arrayBuffer());
+  // Al WebView d'Android, canvas.toBlob triga ~4 s per imatge (provat al Mi 10T Lite); toDataURL, uns 2 ms.
+  const aBytes = async (c, tipus, q) => {
+    const u = c.toDataURL(tipus || 'image/png', q);
+    const b = atob(u.slice(u.indexOf(',') + 1)), out = new Uint8Array(b.length);
+    for (let i = 0; i < b.length; i++) out[i] = b.charCodeAt(i);
+    return out;
+  };
   const esc = (s) => String(s).replace(/[<>&"]/g, (m) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[m]));
 
   /**
@@ -1125,17 +1130,15 @@ ${rellotgeXml}
    * Retorna {bytes: Uint8Array (.mtz), previa: canvas, bloqueig: canvas}
    */
   /**
-   * Indicadors del gestor de temes de MIUI (theme_apply_flags) per aplicar només unes parts (provat al Mi 10T Lite, MIUI 14).
-   * framework 1 · wallpaper 2 · fons de bloqueig 4 · icons 8 · lockstyle 4096 · statusbar 0x2000 · thirdapp 0x10000000.
-   * Una sola part només va si el gestor la reconeix tota sola (icones; bloqueig = 4100); si no, amb 1 fa servir el camí del tema sencer
-   * i salta les parts que no hi són. -1 = tot.
+   * Indicadors del gestor de temes de MIUI (theme_apply_flags) per aplicar només una part (provat al Mi 10T Lite, MIUI 14):
+   * icons 8 · lockstyle 4096 + fons de bloqueig 4 = 4100 (sense el 4, MIUI esborra el fons de bloqueig). -1 = tot el tema.
+   * NO: barreges amb el bit 1 (framework, camí del tema sencer): esborren el fons d'inici encara que no hi sigui.
    */
   function flagsParts(p) {
     const n = ['icones', 'fons', 'bloqueig', 'colors'].filter((k) => p[k]);
-    if (n.length === 4) return -1;
     if (n.length === 1 && p.icones) return 8;
     if (n.length === 1 && p.bloqueig) return 4100;
-    return 1 + (p.icones ? 8 : 0) + (p.fons ? 6 : 0) + (p.bloqueig ? 4096 + (p.fons ? 0 : 4) : 0) + (p.colors ? 0x2000 + 0x10000000 : 0);
+    return -1;
   }
 
   async function creaTema(o) {

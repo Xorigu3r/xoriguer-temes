@@ -122,12 +122,11 @@
       </div>
       <div class="sub">Què vols canviar al telèfon?</div>
       <div class="parts">
-        <label class="check"><input type="checkbox" id="part-icones" checked> Icones</label>
-        <label class="check"><input type="checkbox" id="part-fons" checked> Fons de pantalla</label>
-        <label class="check"><input type="checkbox" id="part-bloqueig" checked> Pantalla de bloqueig (rellotge)</label>
-        <label class="check"><input type="checkbox" id="part-colors" checked> Colors del sistema i Centre de control</label>
+        <label class="check"><input type="radio" name="abast" value="tot" checked> Tot el tema (icones, fons, pantalla de bloqueig i colors)</label>
+        <label class="check"><input type="radio" name="abast" value="icones"> Només les icones</label>
+        <label class="check"><input type="radio" name="abast" value="bloqueig"> Només la pantalla de bloqueig (el rellotge i el seu fons)</label>
       </div>
-      <p class="suau petit">El que no marquis es queda com ara al telèfon.</p>
+      <p class="suau petit">Amb «Només…», la resta del tema del telèfon es queda com ara.</p>
       <label class="camp">Nom del tema <input id="nom" maxlength="40"></label>
       <button id="b-fes" class="princ gran">Aplica al telèfon</button>
       <div id="progres" class="progres" hidden><div></div></div>
