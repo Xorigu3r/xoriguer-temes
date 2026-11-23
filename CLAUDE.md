@@ -152,6 +152,17 @@ Dues parts:
   (23/11/2026 00:14). No ho tornis a fer ni intentis falsificar els permisos. Per conservar icones d'un tema descarregat: només
   «Fons i bloqueig» (4100 + WallpaperManager), que no toca `icons` ni `rights`.
 
+## PER QUÈ ELS TEMES «NO AGUANTEN» (23/11/2026, llegit a miui-framework.jar del Mi 10T Lite)
+- `miui.drm.ThemeReceiver`: cada ~2 h (alarma `miui.intent.action.CHECK_TIME_UP`, al registre «check theme drm event received»)
+  valida cada fitxer de /data/system/theme/ que no sigui a `ThemeManagerConstants.DRM_WHITE_LIST` (wallpaper, lock_wallpaper,
+  miwallpaper_preview, alarmringtone, boots/bootaudio.mp3, config.config, .runtime, ringtones, rights, compatibility-v8, large_icons...)
+  amb `DrmManager.isLegal`: el SHA1 del component ha de sortir a l'`assets` d'un .mra de /data/system/theme/rights/ (els fa
+  Xiaomi, thm.market.intl.xiaomi.com/thm/drm/issue, per als temes de la botiga). Si no → «illegal theme component found» →
+  `ThemeRuntimeManager.restoreDefault()` (tema de sèrie). Vist: 00:14, 02:12, 08:13.
+- Conseqüència: TOT el que apliquem (icones, lockscreen, Configuració, colors...) desapareix en ≤2 h. Només duren els fons.
+- NO falsifiquis .mra ni facis servir la llista blanca per amagar components: és saltar-se el DRM.
+  Via legítima: programa de dissenyadors de Xiaomi (pujar el tema a la botiga) o tornar-lo a aplicar quan l'usuari ho demani.
+
 ## Pendent
 - Provar l'APK al mòbil (llista d'apps amb icones, desar, selector del gestor de temes): **publicada sense provar** (decisió de l'usuari).
 - Provar en altres models i HyperOS.
